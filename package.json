@@ -1,0 +1,14 @@
+{
+  "name": "codex-erp-kecil",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Prototype ERP PT kecil untuk alur PR, PO, approval, receive, asset, non-asset, dan jurnal berbasis COA.",
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/okykur/Codex_ERPKecil.git"
+  },
+  "scripts": {
+    "start": "node server.js"
+  }
+}
