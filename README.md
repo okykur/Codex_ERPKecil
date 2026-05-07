@@ -3,11 +3,13 @@
 Prototype ERP PT kecil untuk alur `Purchase Request -> Approval -> Purchase Order -> Receive -> Posting COA`.
 
 Fokus solusi ini:
-- Purchase Request dengan pemilihan `COA`, `cost center`, dan kategori `asset` / `non-asset`
+- Purchase Request dengan detail kebutuhan dan kategori `asset` / `non-asset`
 - Approval bertingkat untuk PR dan approval tambahan untuk PO
 - Pembuatan Purchase Order dari PR yang sudah approved
+- RFQ / quotation vendor dikelola pada proses `Purchase Order`
 - Proses receive untuk barang, jasa, asset, dan non-asset
 - Posting jurnal otomatis berbasis COA
+- Dukungan `multi-company` berdasarkan scope company saat login
 
 ## Workflow
 
@@ -20,7 +22,18 @@ Blueprint bisnis tersedia di FigJam:
 Dokumen yang sudah tersedia:
 
 - [Struktur Modul, Menu, dan Role User](./ERP-Modules-Menu-Roles.md)
+- [Wireframe Field List](./ERP-Wireframe-Field-Lists.md)
+- [Template Email Approval PR / PO](./docs/approval-email-template.md)
 - [Index dokumentasi](./docs/README.md)
+
+## Prinsip Multi-Company
+
+Repo ini dirancang agar semua modul dan menu bisa dipakai untuk lebih dari satu company, dengan aturan:
+
+- company aktif ditentukan dari login atau company selector
+- setiap transaksi utama membawa `company_id`
+- approval, receive, asset, jurnal, dan report dipisahkan per company
+- role user bekerja bersama `company assignment`, bukan role saja
 
 ## Menjalankan Aplikasi
 
@@ -43,6 +56,7 @@ Lalu buka `http://localhost:3000`.
 
 - Data masih disimpan di `localStorage`
 - Belum ada database, login, atau backend API
+- Belum ada implementasi nyata untuk `multi-company login scope`, tetapi requirement-nya sudah menjadi bagian desain
 - Approval PR tambahan saat nominal `> Rp 50.000.000`
 - Approval PO tambahan saat nominal `> Rp 75.000.000`
 - Receive memicu jurnal otomatis ke akun transaksi versus `2105 - GR/IR Clearing`

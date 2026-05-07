@@ -5,6 +5,9 @@ Folder ini menampung dokumen turunan dari workflow ERP untuk PT kecil.
 ## Daftar Dokumen
 
 - [Struktur Modul, Menu, dan Role User](../ERP-Modules-Menu-Roles.md)
+- [Wireframe Field List](../ERP-Wireframe-Field-Lists.md)
+- [Template Email Approval PR / PO](./approval-email-template.md)
+- [Preview HTML Email Approval](./approval-email-template.html)
 
 ## Referensi Workflow
 

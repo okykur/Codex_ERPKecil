@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Template Email Approval PR / PO</title>
+  </head>
+  <body style="margin:0;padding:0;background-color:#f4f7fb;font-family:Arial,Helvetica,sans-serif;color:#24324a;">
+    <!--
+      Placeholder backend:
+      {{app_name}}
+      {{company_name}}
+      {{document_type}}
+      {{document_number}}
+      {{document_status}}
+      {{requester_name}}
+      {{requester_department}}
+      {{vendor_name}}
+      {{created_at}}
+      {{approval_deadline}}
+      {{document_total}}
+      {{document_summary}}
+      {{line_items_html}}
+      {{note_html}}
+      {{view_document_url}}
+      {{approve_url}}
+      {{reject_url}}
+      {{approval_token}}
+    -->
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color:#f4f7fb;">
+      <tr>
+        <td align="center" style="padding:32px 16px;">
+          <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="max-width:680px;background-color:#ffffff;border:1px solid #d8e3f2;border-radius:20px;overflow:hidden;">
+            <tr>
+              <td style="padding:28px 32px;background:linear-gradient(135deg,#eef5ff 0%,#f8fbff 100%);border-bottom:1px solid #d8e3f2;">
+                <div style="display:inline-block;padding:8px 14px;border-radius:999px;background-color:#dbe9ff;color:#1858c8;font-size:12px;font-weight:700;letter-spacing:0.2px;">
+                  {{app_name}} Approval Request
+                </div>
+                <h1 style="margin:16px 0 6px 0;font-size:28px;line-height:34px;color:#22324b;">
+                  Approval {{document_type}}
+                </h1>
+                <p style="margin:0;font-size:14px;line-height:22px;color:#627188;">
+                  Mohon review dokumen berikut. Klik tombol <strong>Approve</strong> atau <strong>Reject</strong> untuk langsung mengupdate status di sistem.
+                </p>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding:28px 32px 8px 32px;">
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="border-collapse:separate;border-spacing:0 12px;">
+                  <tr>
+                    <td width="50%" style="padding:14px 16px;background-color:#f7faff;border:1px solid #d8e3f2;border-radius:14px;">
+                      <div style="font-size:11px;line-height:16px;color:#7a889d;font-weight:700;">Nama PT</div>
+                      <div style="font-size:15px;line-height:22px;color:#22324b;font-weight:600;">{{company_name}}</div>
+                    </td>
+                    <td width="50%" style="padding:14px 16px;background-color:#f7faff;border:1px solid #d8e3f2;border-radius:14px;">
+                      <div style="font-size:11px;line-height:16px;color:#7a889d;font-weight:700;">Nomor Dokumen</div>
+                      <div style="font-size:15px;line-height:22px;color:#22324b;font-weight:600;">{{document_number}}</div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td width="50%" style="padding:14px 16px;background-color:#f7faff;border:1px solid #d8e3f2;border-radius:14px;">
+                      <div style="font-size:11px;line-height:16px;color:#7a889d;font-weight:700;">Dibuat Oleh</div>
+                      <div style="font-size:15px;line-height:22px;color:#22324b;font-weight:600;">{{requester_name}}</div>
+                      <div style="font-size:13px;line-height:20px;color:#627188;">{{requester_department}}</div>
+                    </td>
+                    <td width="50%" style="padding:14px 16px;background-color:#f7faff;border:1px solid #d8e3f2;border-radius:14px;">
+                      <div style="font-size:11px;line-height:16px;color:#7a889d;font-weight:700;">Tanggal Dokumen</div>
+                      <div style="font-size:15px;line-height:22px;color:#22324b;font-weight:600;">{{created_at}}</div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td width="50%" style="padding:14px 16px;background-color:#f7faff;border:1px solid #d8e3f2;border-radius:14px;">
+                      <div style="font-size:11px;line-height:16px;color:#7a889d;font-weight:700;">Nilai Dokumen</div>
+                      <div style="font-size:15px;line-height:22px;color:#22324b;font-weight:600;">{{document_total}}</div>
+                    </td>
+                    <td width="50%" style="padding:14px 16px;background-color:#f7faff;border:1px solid #d8e3f2;border-radius:14px;">
+                      <div style="font-size:11px;line-height:16px;color:#7a889d;font-weight:700;">Batas Review</div>
+                      <div style="font-size:15px;line-height:22px;color:#22324b;font-weight:600;">{{approval_deadline}}</div>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding:8px 32px 0 32px;">
+                <div style="padding:18px 20px;background-color:#f9fbfe;border:1px solid #d8e3f2;border-radius:16px;">
+                  <div style="font-size:13px;line-height:20px;color:#7a889d;font-weight:700;margin-bottom:8px;">Ringkasan Dokumen</div>
+                  <div style="font-size:14px;line-height:24px;color:#22324b;">{{document_summary}}</div>
+                </div>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding:20px 32px 0 32px;">
+                <div style="font-size:13px;line-height:20px;color:#7a889d;font-weight:700;margin-bottom:10px;">Item Utama</div>
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="border-collapse:collapse;border:1px solid #d8e3f2;border-radius:14px;overflow:hidden;">
+                  <tr style="background-color:#eef4fb;">
+                    <td style="padding:12px 14px;font-size:12px;font-weight:700;color:#4d5d75;">Kode / Item</td>
+                    <td style="padding:12px 14px;font-size:12px;font-weight:700;color:#4d5d75;">Qty</td>
+                    <td style="padding:12px 14px;font-size:12px;font-weight:700;color:#4d5d75;">Harga / Nilai</td>
+                    <td style="padding:12px 14px;font-size:12px;font-weight:700;color:#4d5d75;">Kategori</td>
+                  </tr>
+                  {{line_items_html}}
+                </table>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding:20px 32px 0 32px;">
+                <div style="padding:16px 18px;background-color:#fff8ec;border:1px solid #f2ddad;border-radius:16px;">
+                  <div style="font-size:13px;line-height:20px;color:#996d12;font-weight:700;margin-bottom:6px;">Catatan Tambahan</div>
+                  <div style="font-size:14px;line-height:22px;color:#5d4a1d;">{{note_html}}</div>
+                </div>
+              </td>
+            </tr>
+
+            <tr>
+              <td align="center" style="padding:28px 32px 8px 32px;">
+                <a href="{{approve_url}}" style="display:inline-block;padding:14px 28px;background-color:#2f76e6;color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;border-radius:12px;margin-right:8px;">
+                  Approve
+                </a>
+                <a href="{{reject_url}}" style="display:inline-block;padding:14px 28px;background-color:#ffffff;color:#cb3e37;text-decoration:none;font-size:15px;font-weight:700;border:1px solid #f0b4b0;border-radius:12px;margin-left:8px;">
+                  Reject
+                </a>
+              </td>
+            </tr>
+
+            <tr>
+              <td align="center" style="padding:8px 32px 24px 32px;">
+                <a href="{{view_document_url}}" style="font-size:13px;line-height:20px;color:#1858c8;text-decoration:none;font-weight:600;">
+                  Lihat detail dokumen di sistem
+                </a>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding:20px 32px 28px 32px;border-top:1px solid #d8e3f2;background-color:#fbfcff;">
+                <p style="margin:0 0 6px 0;font-size:12px;line-height:18px;color:#7a889d;">
+                  Email ini dikirim otomatis oleh {{app_name}} untuk approval {{document_type}}.
+                </p>
+                <p style="margin:0 0 6px 0;font-size:12px;line-height:18px;color:#7a889d;">
+                  Link approve/reject harus menggunakan token unik dan hanya berlaku untuk satu approver.
+                </p>
+                <p style="margin:0;font-size:12px;line-height:18px;color:#7a889d;">
+                  Ref token: {{approval_token}}
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

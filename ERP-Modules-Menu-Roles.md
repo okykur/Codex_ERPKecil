@@ -2,6 +2,24 @@
 
 Dokumen ini menurunkan workflow `PR -> Approval -> PO -> Receive -> COA Posting` menjadi struktur ERP yang siap dipakai untuk desain layar, pengembangan aplikasi, dan penyusunan hak akses.
 
+## 0. Prinsip Multi-Company
+
+ERP kecil ini harus mendukung `multi-company` untuk seluruh modul dan menu, dengan aturan dasar:
+
+- User login membawa `company scope` yang menentukan data perusahaan mana yang boleh diakses
+- Semua modul utama seperti `PR`, `PO`, `Approval`, `Receive`, `Asset`, `Accounting`, dan `Reports` wajib memfilter data berdasarkan company aktif
+- User dapat memiliki akses ke `satu` atau `lebih dari satu` company, tergantung role dan otorisasi
+- Jika user memiliki lebih dari satu company, sistem menyediakan `company selector` setelah login
+- Approval, numbering, master data, COA, cost center, asset register, dan laporan harus dapat dipisahkan per company
+- Hak akses tidak hanya berbasis role, tetapi juga berbasis `company assignment`
+
+Implikasi desain:
+
+- Header aplikasi perlu menampilkan `company aktif`
+- Semua list dan form perlu menyimpan `company_id`
+- Semua workflow approval dan jurnal perlu membaca company context dari dokumen transaksi
+- Menu yang sama dapat dipakai lintas company, tetapi isi data dan otorisasinya mengikuti company aktif user
+
 ## 1. Modul ERP
 
 ### 1. Procurement Planning
@@ -113,6 +131,7 @@ Menu:
 - Pending Approvals
 - Outstanding PR / PO / Receive
 - Alerts & Exceptions
+- Company Switcher / Active Company
 
 ### Procurement Planning
 
@@ -176,6 +195,7 @@ Menu:
 - Asset Category Master
 - Approval Matrix
 - Spending Limit Rules
+- Company Master / Company Access Mapping
 
 ### Reports
 
@@ -193,6 +213,7 @@ Menu:
 Menu:
 - User Management
 - Role Management
+- User Company Assignment
 - Workflow Settings
 - Company Settings
 
@@ -205,6 +226,7 @@ Tanggung jawab:
 - Memilih item, qty, estimasi harga
 - Memilih COA, cost center, dan kategori asset / non-asset
 - Melihat status PR, PO, dan receive miliknya
+- Bekerja dalam company scope sesuai assignment login
 
 Akses utama:
 - Dashboard
@@ -218,6 +240,7 @@ Tanggung jawab:
 - Mereview PR dari bawahan / unit terkait
 - Menyetujui atau menolak PR
 - Mereview transaksi yang melewati limit
+- Melakukan approval hanya untuk company yang menjadi otoritasnya
 
 Akses utama:
 - Pending Approvals
@@ -235,6 +258,7 @@ Tanggung jawab:
 - Memilih vendor
 - Membuat dan mengirim PO
 - Memproses approval tambahan PO jika diperlukan
+- Menjalankan proses procurement sesuai company aktif
 
 Akses utama:
 - Approved PR Queue
@@ -249,6 +273,7 @@ Tanggung jawab:
 - Memastikan receive sesuai PO
 - Menentukan receive asset atau non-asset
 - Membuat dokumen receive
+- Menjaga receive tercatat pada company yang benar
 
 Akses utama:
 - Receive from PO
@@ -265,6 +290,7 @@ Tanggung jawab:
 - Memastikan posting sesuai COA
 - Mengelola GR/IR atau AP readiness
 - Mengupdate ledger
+- Menjaga posting jurnal dan ledger tetap terpisah per company
 
 Akses utama:
 - Journal Posting
@@ -278,6 +304,7 @@ Tanggung jawab:
 - Membuat nomor asset
 - Membentuk kartu asset
 - Memastikan receive asset masuk ke register asset
+- Menjaga register asset tetap terpisah per company
 
 Akses utama:
 - Asset Registration
@@ -290,6 +317,7 @@ Tanggung jawab:
 - Mengelola approval matrix
 - Mengelola COA, cost center, dan limit transaksi
 - Menjaga parameter workflow dan kontrol sistem
+- Mengelola company master dan assignment user ke company
 
 Akses utama:
 - Master Data
@@ -311,7 +339,38 @@ Akses utama:
 | Master Data | No | No | Limited vendor view | No | Limited COA view | Limited category view | Full |
 | Reports | Own data | Approval reports | Procurement reports | Receive reports | Finance reports | Asset reports | Full |
 
-## 5. Saran Tahap Implementasi
+## 5. Aturan Data Scope per Company
+
+Setiap transaksi dan master minimal perlu membawa atribut berikut:
+
+- `company_id`
+- `business_unit` atau `branch` bila diperlukan
+- `created_by`
+- `approval_scope`
+
+Objek yang wajib company-aware:
+
+- Purchase Request
+- Purchase Order
+- Approval Inbox
+- Receive Document
+- Asset Register
+- Journal Posting
+- GR/IR Register
+- Vendor Master
+- COA
+- Cost Center
+- Approval Matrix
+
+Aturan akses minimum:
+
+- User biasa hanya melihat data company yang di-assign ke akunnya
+- Approver hanya melihat transaksi approval untuk company yang menjadi scope-nya
+- Accounting melihat jurnal dan ledger per company aktif
+- ERP Admin dapat diberi akses lintas company
+- Numbering dokumen dapat dibuat per company, misalnya `PR-HO-2026-0001` dan `PR-MFG-2026-0001`
+
+## 6. Saran Tahap Implementasi
 
 ### Tahap 1 - Core MVP
 
@@ -322,6 +381,7 @@ Bangun lebih dulu:
 - Receive
 - Auto journal
 - Dashboard pending task
+- Company scope dari login
 
 ### Tahap 2 - Operational Control
 
@@ -331,6 +391,7 @@ Tambahkan:
 - Approval matrix
 - Cost center dan COA master
 - GR/IR register
+- Company access mapping
 
 ### Tahap 3 - Governance
 
@@ -339,8 +400,9 @@ Tambahkan:
 - Audit trail
 - Role-based access control penuh
 - Reporting dan export
+- Cross-company governance dan konsolidasi laporan
 
-## 6. Output untuk Desain Screen Berikutnya
+## 7. Output untuk Desain Screen Berikutnya
 
 Urutan screen yang paling cocok dibuat sesudah workflow:
 
