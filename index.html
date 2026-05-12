@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ERP PT Kecil | PR - PO - Receive</title>
+    <title>ERP PT Kecil | Login, Master, PR - PO - Receive</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -13,145 +13,710 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <div class="shell">
-      <aside class="sidebar">
-        <div class="brand">
-          <p class="eyebrow">ERP PT Kecil</p>
-          <h1>Procurement Flow Hub</h1>
-          <p class="muted">PR, approval, PO, receive asset/non-asset, dan jurnal COA dalam satu alur.</p>
-        </div>
-
-        <nav class="nav">
-          <button class="nav-link active" data-section="dashboard">Dashboard</button>
-          <button class="nav-link" data-section="purchase-request">Purchase Request</button>
-          <button class="nav-link" data-section="approval-queue">Approval Queue</button>
-          <button class="nav-link" data-section="purchase-order">Purchase Order</button>
-          <button class="nav-link" data-section="receive">Receive</button>
-          <button class="nav-link" data-section="journal">COA & Jurnal</button>
-        </nav>
-
-        <div class="sidebar-card">
-          <p class="eyebrow">Workflow FigJam</p>
-          <p>Blueprint proses awal sudah dibuat di Figma agar alur bisnis dan UI nanti selaras.</p>
-          <a
-            class="button secondary"
-            href="https://www.figma.com/board/wwgzqs4pg0dUCHsNBuMZQ3?utm_source=codex&utm_content=edit_in_figjam&oai_id=&request_id=254dfda2-dfd5-4d50-8966-39240488c28e"
-            target="_blank"
-            rel="noreferrer"
-          >
-            Buka Workflow
-          </a>
-        </div>
-      </aside>
-
-      <main class="content">
-        <section id="dashboard" class="section active">
-          <div class="hero">
+    <div id="login-screen" class="login-shell">
+      <div class="login-stack">
+        <section class="login-panel">
+          <div class="panel-header login-panel-header">
             <div>
-              <p class="eyebrow">MVP Procurement ERP</p>
-              <h2>Alur pembelian yang rapi dari PR sampai receive dan posting COA</h2>
-              <p class="lead">
-                Versi awal ini fokus pada pengendalian dokumen, approval bertingkat, receive asset vs non-asset,
-                dan jurnal otomatis berbasis chart of accounts.
-              </p>
-            </div>
-            <div class="hero-actions">
-              <button class="button" data-jump="purchase-request">Buat PR Baru</button>
-              <button class="button secondary" data-jump="receive">Catat Receive</button>
+              <h2>ERP [ Procure ]</h2>
             </div>
           </div>
 
+          <form id="login-form" class="form-grid">
+            <label class="full">
+              Nama PT
+              <select id="login-company" name="companyId" required></select>
+            </label>
+            <label class="full">
+              Email / Username
+              <input id="login-email" name="email" type="email" placeholder="nama.user@ptkecil.co.id" required />
+            </label>
+            <label class="full">
+              Password
+              <input id="login-password" name="password" type="password" placeholder="Masukkan password" required />
+            </label>
+            <p id="login-message" class="form-message"></p>
+            <button class="button full" type="submit">Login</button>
+          </form>
+        </section>
+
+        <aside class="login-accounts-panel">
+          <div class="panel-header">
+            <div>
+              <h3>Test Accounts</h3>
+              <p>Akun lokal untuk uji role dan scope PT.</p>
+            </div>
+          </div>
+
+          <div class="login-account-list">
+            <article class="login-account-item">
+              <strong>Administrator</strong>
+              <p>administrator@ptkecil.co.id</p>
+              <span>Admin#2026</span>
+            </article>
+            <article class="login-account-item">
+              <strong>User Maker</strong>
+              <p>maker.ho@ptkecil.co.id</p>
+              <span>Maker#2026</span>
+            </article>
+            <article class="login-account-item">
+              <strong>Procurement</strong>
+              <p>procurement@ptkecil.co.id</p>
+              <span>Proc#2026</span>
+            </article>
+          </div>
+        </aside>
+      </div>
+    </div>
+
+    <div id="app-shell" class="shell app-hidden">
+      <aside class="sidebar">
+        <div class="brand-card">
+          <p class="brand-title">ERP [ Procure ]</p>
+          <p class="brand-subtitle">Data Usaha aktif</p>
+        </div>
+
+        <nav class="nav">
+          <div class="nav-group">
+            <p class="nav-group-title">UMUM</p>
+            <button class="nav-link active" data-section="dashboard">Dashboard</button>
+          </div>
+
+          <div class="nav-group">
+            <p class="nav-group-title">TRANSAKSI</p>
+            <button class="nav-link" data-section="purchase-request">Permintaan Barang</button>
+            <button class="nav-link" data-section="purchase-order">Pesanan Pembelian</button>
+            <button class="nav-link" data-section="receive">Penerimaan Barang</button>
+            <button class="nav-link" data-section="approval-queue">Persetujuan</button>
+          </div>
+
+          <div class="nav-group">
+            <p class="nav-group-title">AKUNTANSI</p>
+            <button class="nav-link" data-section="journal">Jurnal Umum</button>
+          </div>
+
+          <div class="nav-group">
+            <p class="nav-group-title">MASTER</p>
+            <button class="nav-link" data-section="company-management">Data Usaha</button>
+            <button class="nav-link" data-section="user-management">User Management</button>
+            <button class="nav-link" data-section="role-management">Roles Management</button>
+            <button class="nav-link" data-section="master-vendor">Master Vendor</button>
+            <button class="nav-link" data-section="master">Master Referensi</button>
+          </div>
+        </nav>
+
+        <div class="sidebar-footer">
+          <div id="session-summary" class="session-summary"></div>
+          <button id="logout-button" class="button secondary full-width" type="button">Logout</button>
+        </div>
+      </aside>
+
+      <div class="workspace">
+        <header class="app-topbar">
+          <div class="app-topbar-copy">
+            <p id="page-breadcrumb" class="topbar-breadcrumb">Pembelian / Dashboard</p>
+            <h2 id="page-title">Dashboard</h2>
+            <p id="page-subtitle" class="topbar-subtitle">Ringkasan aktivitas procurement pada Data Usaha aktif.</p>
+          </div>
+          <div class="app-topbar-actions">
+            <label class="chip-select">
+              <span>Data Usaha</span>
+              <select id="company-switcher"></select>
+            </label>
+            <div id="period-chip" class="topbar-chip">Periode: Mei</div>
+            <div id="role-chip" class="topbar-chip topbar-chip-success">Administrator</div>
+          </div>
+        </header>
+
+        <main class="content">
+        <section
+          id="dashboard"
+          class="section active"
+          data-breadcrumb="Umum / Dashboard"
+          data-title="Dashboard"
+          data-subtitle="Ringkasan aktivitas procurement pada Data Usaha aktif."
+        >
           <div class="stats" id="stats"></div>
 
-          <div class="grid two-up">
-            <article class="panel">
-              <div class="panel-header">
-                <h3>Alur Approval</h3>
-                <span class="pill">Threshold final approval &gt; Rp 50.000.000</span>
+          <article class="panel dashboard-relation-panel">
+            <div class="panel-header">
+              <div>
+                <h3>Relasi Purchase Request &amp; Purchase Order</h3>
+                <p>Ringkasan hubungan PR dan PO beserta status masing-masing dokumen.</p>
               </div>
-              <ol class="timeline" id="timeline"></ol>
-            </article>
+              <span class="pill soft">PR -> PO</span>
+            </div>
+            <div id="dashboard-pr-po-list"></div>
+          </article>
 
+        </section>
+
+        <section
+          id="company-management"
+          class="section"
+          data-breadcrumb="Master / Data Usaha"
+          data-title="Data Usaha"
+          data-subtitle="Kelola company dan vendor yang dipakai dari login sampai transaksi."
+        >
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Administrator</p>
+              <h2>Data Usaha</h2>
+            </div>
+            <span class="pill">Company dan vendor aktif</span>
+          </div>
+
+          <div id="company-access-note"></div>
+
+          <div class="grid company-management-grid">
             <article class="panel">
               <div class="panel-header">
-                <h3>Aktivitas Terbaru</h3>
-                <span class="pill soft">Realtime dari data lokal</span>
+                <div>
+                  <h3>Master Company</h3>
+                  <p>Dipakai dari login sampai receive.</p>
+                </div>
+                <button id="company-open-form" class="button action-button" type="button">Tambah Company</button>
               </div>
-              <div id="recent-activity" class="stack-list"></div>
+              <div id="company-form-panel" class="inline-form-panel app-hidden">
+                <form id="company-form" class="form-grid">
+                  <input type="hidden" name="companyId" />
+                  <label>
+                    Kode Company
+                    <input name="code" placeholder="CMP-HO" required />
+                  </label>
+                  <label>
+                    Nama Company
+                    <input name="name" placeholder="PT Kecil HO" required />
+                  </label>
+                  <label>
+                    Tipe
+                    <input name="type" placeholder="Operasional / Trading / Services" required />
+                  </label>
+                  <label>
+                    Status
+                    <select name="status" required>
+                      <option value="active">Aktif</option>
+                      <option value="inactive">Nonaktif</option>
+                    </select>
+                  </label>
+                  <label class="full">
+                    Alamat Lengkap
+                    <textarea name="address" rows="3" placeholder="Alamat lengkap company" required></textarea>
+                  </label>
+                  <label class="full checkbox-label">
+                    <input name="isDefault" type="checkbox" />
+                    Jadikan default login company
+                  </label>
+                  <div class="form-actions full">
+                    <button class="button" type="submit">Simpan Company</button>
+                    <button id="company-reset" class="button secondary" type="button">Tutup Form</button>
+                  </div>
+                </form>
+              </div>
+              <div id="company-list" class="stack-list"></div>
             </article>
           </div>
         </section>
 
-        <section id="purchase-request" class="section">
+        <section
+          id="user-management"
+          class="section"
+          data-breadcrumb="Master / User Management"
+          data-title="User Management"
+          data-subtitle="Maintain user login, akses Data Usaha, dan role ERP."
+        >
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Administrator</p>
+              <h2>User Management</h2>
+            </div>
+            <span class="pill">Email sebagai username</span>
+          </div>
+
+          <div id="user-access-note"></div>
+
+          <div class="grid company-management-grid">
+            <article class="panel">
+              <div class="panel-header">
+                <div>
+                  <h3>Master User Login</h3>
+                  <p>Assign user ke satu atau beberapa Data Usaha dan roles.</p>
+                </div>
+                <button id="user-open-form" class="button action-button" type="button">Tambah User</button>
+              </div>
+              <div id="user-form-panel" class="inline-form-panel app-hidden">
+                <form id="user-form" class="form-grid">
+                  <input type="hidden" name="userId" />
+                  <label>
+                    Nama User
+                    <input name="name" placeholder="Nama lengkap user" required />
+                  </label>
+                  <label>
+                    Email / Username
+                    <input name="email" type="email" placeholder="nama.user@ptkecil.co.id" required />
+                  </label>
+                  <label>
+                    Password
+                    <input name="password" type="text" placeholder="Password login" required />
+                  </label>
+                  <label>
+                    Status
+                    <select name="status" required>
+                      <option value="active">Aktif</option>
+                      <option value="inactive">Nonaktif</option>
+                    </select>
+                  </label>
+                  <fieldset class="full checkbox-panel">
+                    <legend>Data Usaha / Nama PT</legend>
+                    <div id="user-company-options" class="checkbox-grid"></div>
+                  </fieldset>
+                  <fieldset class="full checkbox-panel">
+                    <legend>Roles</legend>
+                    <div id="user-role-options" class="checkbox-grid"></div>
+                  </fieldset>
+                  <div class="form-actions full">
+                    <button class="button" type="submit">Simpan User</button>
+                    <button id="user-reset" class="button secondary" type="button">Tutup Form</button>
+                  </div>
+                </form>
+              </div>
+              <div id="user-list" class="stack-list"></div>
+            </article>
+          </div>
+        </section>
+
+        <section
+          id="role-management"
+          class="section"
+          data-breadcrumb="Master / Roles Management"
+          data-title="Roles Management"
+          data-subtitle="Tentukan role dapat membuka menu apa saja."
+        >
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Administrator</p>
+              <h2>Roles Management</h2>
+            </div>
+            <span class="pill">Menu access per role</span>
+          </div>
+
+          <div id="role-access-note"></div>
+
+          <div class="grid company-management-grid">
+            <article class="panel">
+              <div class="panel-header">
+                <div>
+                  <h3>Role Access Menu</h3>
+                  <p>Pilih role, lalu centang menu yang boleh dibuka oleh role tersebut.</p>
+                </div>
+              </div>
+              <form id="role-form" class="form-grid">
+                <label>
+                  Role
+                  <select name="roleId" id="role-select" required></select>
+                </label>
+                <label>
+                  Nama Role
+                  <input name="roleName" placeholder="Nama role" required />
+                </label>
+                <fieldset class="full checkbox-panel">
+                  <legend>Menu yang Dapat Diakses</legend>
+                  <div id="role-menu-options" class="checkbox-grid role-menu-grid"></div>
+                </fieldset>
+                <div class="form-actions full">
+                  <button class="button" type="submit">Simpan Role Access</button>
+                  <button id="role-reset" class="button secondary" type="button">Reset Pilihan</button>
+                </div>
+              </form>
+              <div id="role-list" class="stack-list"></div>
+            </article>
+          </div>
+        </section>
+
+        <section
+          id="master-vendor"
+          class="section"
+          data-breadcrumb="Master / Master Vendor"
+          data-title="Master Vendor"
+          data-subtitle="Kelola vendor yang dipakai di Purchase Request dan Purchase Order."
+        >
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Administrator</p>
+              <h2>Master Vendor</h2>
+            </div>
+            <span class="pill">Vendor per Data Usaha</span>
+          </div>
+
+          <div id="vendor-access-note"></div>
+
+          <div class="grid company-management-grid">
+            <article class="panel">
+              <div class="panel-header">
+                <div>
+                  <h3>Master Vendor</h3>
+                  <p>Dipakai di Purchase Request dan Purchase Order.</p>
+                </div>
+                <button id="vendor-open-form" class="button action-button" type="button">Tambah Vendor</button>
+              </div>
+              <div id="vendor-form-panel" class="inline-form-panel app-hidden">
+                <form id="vendor-form" class="form-grid">
+                  <input type="hidden" name="vendorId" />
+                  <label>
+                    Kode Vendor
+                    <input name="code" placeholder="VND-001" required />
+                  </label>
+                  <label>
+                    Nama Vendor
+                    <input name="name" placeholder="PT Sumber Karya" required />
+                  </label>
+                  <label>
+                    PIC Vendor
+                    <input name="contactPerson" placeholder="Nama PIC" required />
+                  </label>
+                  <label>
+                    Email Vendor
+                    <input name="email" type="email" placeholder="sales@vendor.co.id" required />
+                  </label>
+                  <label>
+                    Tipe Vendor
+                    <input name="type" placeholder="Barang / Jasa / Campuran" required />
+                  </label>
+                  <label>
+                    Status
+                    <select name="status" required>
+                      <option value="active">Aktif</option>
+                      <option value="inactive">Nonaktif</option>
+                    </select>
+                  </label>
+                  <label class="full">
+                    Alamat Lengkap
+                    <textarea name="address" rows="3" placeholder="Alamat lengkap vendor" required></textarea>
+                  </label>
+                  <label class="full">
+                    Catatan Vendor
+                    <textarea name="note" rows="3" placeholder="Catatan evaluasi atau area layanan vendor"></textarea>
+                  </label>
+                  <div class="form-actions full">
+                    <button class="button" type="submit">Simpan Vendor</button>
+                    <button id="vendor-reset" class="button secondary" type="button">Tutup Form</button>
+                  </div>
+                </form>
+              </div>
+              <div id="vendor-list" class="stack-list"></div>
+            </article>
+          </div>
+        </section>
+
+        <section
+          id="master"
+          class="section"
+          data-breadcrumb="Master / Master Referensi"
+          data-title="Master Referensi"
+          data-subtitle="Kategori master untuk Purchase Request dan workflow approval."
+        >
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Administrator</p>
+              <h2>Master Referensi</h2>
+            </div>
+            <span class="pill">Kategori dan nilai master</span>
+          </div>
+
+          <div id="master-access-note"></div>
+
+          <div id="master-stats" class="stats master-stats"></div>
+
+          <article class="panel">
+            <div class="panel-header">
+              <h3>Filter &amp; Search</h3>
+            </div>
+            <p>Cari kategori atau nilai master berdasarkan nama, kode, atau status.</p>
+            <div class="form-grid filter-grid">
+              <label>
+                Cari Master
+                <input id="master-search-input" placeholder="Prioritas / Pengadaan / JNS-01" />
+              </label>
+              <label>
+                Status Nilai
+                <select id="master-status-filter">
+                  <option value="all">Semua</option>
+                  <option value="active">Aktif</option>
+                  <option value="inactive">Nonaktif</option>
+                </select>
+              </label>
+              <label>
+                Kategori
+                <select id="master-category-filter">
+                  <option value="all">Semua kategori</option>
+                </select>
+              </label>
+              <div class="filter-actions">
+                <button id="master-filter-reset" class="button secondary" type="button">Reset</button>
+              </div>
+            </div>
+          </article>
+
+          <article id="reference-editor-panel" class="panel app-hidden">
+            <div class="panel-header">
+              <h3>Editor Nilai Master</h3>
+              <span class="pill soft">Administrator only</span>
+            </div>
+
+            <div class="master-toolbar">
+              <label>
+                Kategori Master
+                <select id="master-category-select"></select>
+              </label>
+            </div>
+
+            <form id="reference-form" class="form-grid">
+              <input type="hidden" name="valueId" />
+              <label>
+                Kode Nilai
+                <input name="code" placeholder="REF-001" required />
+              </label>
+              <label>
+                Nama Nilai
+                <input name="name" placeholder="Pengadaan Barang / Tinggi" required />
+              </label>
+              <label>
+                Status
+                <select name="status" required>
+                  <option value="active">Aktif</option>
+                  <option value="inactive">Nonaktif</option>
+                </select>
+              </label>
+              <div class="form-actions full">
+                <button class="button" type="submit">Simpan Nilai</button>
+                <button id="reference-reset" class="button secondary" type="button">Tutup Editor</button>
+              </div>
+            </form>
+          </article>
+
+          <div id="reference-list" class="stack-list"></div>
+        </section>
+
+        <section
+          id="purchase-request"
+          class="section"
+          data-breadcrumb="Pembelian / Permintaan Barang"
+          data-title="Permintaan Barang"
+          data-subtitle="PR untuk Data Usaha aktif, lengkap dengan vendor usulan dan approval."
+        >
           <div class="section-heading">
             <div>
               <p class="eyebrow">Procure</p>
-              <h2>Purchase Request</h2>
+              <h2>Permintaan Barang</h2>
             </div>
             <span class="pill">Requester -> Dept Head -> Finance</span>
           </div>
 
-          <div class="grid two-up">
-            <article class="panel">
-              <div class="panel-header">
-                <h3>Form PR</h3>
-                <span class="pill soft">Submit langsung ke approval</span>
+          <article class="panel">
+            <div class="panel-header">
+              <div>
+                <h3>Daftar Purchase Request</h3>
+                <p>List PR yang sudah dibuat beserta status approval-nya.</p>
               </div>
-              <form id="pr-form" class="form-grid">
-                <label>
-                  Judul PR
-                  <input name="title" placeholder="Contoh: Laptop operasional finance" required />
-                </label>
-                <label>
-                  Requester
-                  <input name="requester" placeholder="Nama peminta" required />
-                </label>
-                <label>
-                  Department
-                  <input name="department" placeholder="Finance / GA / IT" required />
-                </label>
-                <label>
-                  Cost Center
-                  <input name="costCenter" placeholder="FIN-001" required />
-                </label>
-                <label>
-                  Nilai Pengajuan
-                  <input name="amount" type="number" min="0" step="1000" placeholder="25000000" required />
-                </label>
-                <label>
-                  Vendor Usulan
-                  <input name="vendorSuggestion" placeholder="CV Sinar Teknologi" required />
-                </label>
-                <label>
-                  Kategori
-                  <select name="category" required>
-                    <option value="asset">Asset</option>
-                    <option value="non_asset">Non-Asset</option>
-                  </select>
-                </label>
-                <label>
-                  COA
-                  <select name="coaCode" id="coa-select" required></select>
-                </label>
-                <label class="full">
-                  Deskripsi Kebutuhan
-                  <textarea name="description" rows="4" placeholder="Spesifikasi, alasan pembelian, kebutuhan bisnis" required></textarea>
-                </label>
-                <button class="button full" type="submit">Submit Purchase Request</button>
-              </form>
-            </article>
+              <button id="pr-open-form" class="button action-button" type="button">Buat Purchase Request</button>
+            </div>
 
-            <article class="panel">
-              <div class="panel-header">
-                <h3>Daftar PR</h3>
-                <span class="pill soft">Semua status</span>
-              </div>
-              <div id="pr-list" class="stack-list"></div>
-            </article>
-          </div>
+            <div class="list-toolbar">
+              <label>
+                Search Nomor PR
+                <input id="pr-search-input" placeholder="Contoh: CMP-HO-PR-120526-001" />
+              </label>
+            </div>
+
+            <div id="pr-form-panel" class="inline-form-panel app-hidden">
+              <form id="pr-form" class="pr-layout">
+                <article class="panel">
+                  <div class="panel-header">
+                    <div>
+                      <h3>Header Purchase Request</h3>
+                      <p>Nomor PR, Data Usaha, tanggal dokumen, dan status draft.</p>
+                    </div>
+                    <span class="pill soft">Header</span>
+                  </div>
+                  <div class="pr-header-grid">
+                    <label>
+                      Data Usaha
+                      <input id="pr-company-display" readonly />
+                    </label>
+                    <label>
+                      No. Permintaan
+                      <input id="pr-number-display" readonly />
+                    </label>
+                    <label>
+                      Tanggal
+                      <input id="pr-date-display" readonly />
+                    </label>
+                    <label>
+                      Status
+                      <input id="pr-status-display" value="Draft" readonly />
+                    </label>
+                  </div>
+                </article>
+
+                <article class="panel">
+                  <div class="panel-header">
+                    <div>
+                      <h3>Informasi Requester</h3>
+                      <p>Isi informasi peminta dan jenis kebutuhan sesuai proses di Figma.</p>
+                    </div>
+                    <span class="pill soft">Requester</span>
+                  </div>
+                  <div class="pr-info-grid">
+                    <label>
+                      Department
+                      <input name="department" placeholder="General Affairs / IT / Finance" required />
+                    </label>
+                    <label>
+                      Requester
+                      <input name="requester" placeholder="Nama peminta" required />
+                    </label>
+                    <label>
+                      Prioritas
+                      <select name="priority" id="priority-select" required></select>
+                    </label>
+                    <label>
+                      Jenis Permintaan
+                      <select name="requestType" id="request-type-select" required></select>
+                    </label>
+                  </div>
+                </article>
+
+                <article class="panel">
+                  <div class="panel-header">
+                    <div>
+                      <h3>Cari / Pilih Barang</h3>
+                      <p>Satu Purchase Request dapat berisi beberapa item barang atau jasa.</p>
+                    </div>
+                    <button id="pr-add-item" class="button action-button" type="button">Tambah Item</button>
+                  </div>
+                  <div class="pr-item-grid">
+                    <label>
+                      Nama Barang / Jasa
+                      <input name="itemName" placeholder="Contoh: Laptop operasional finance" />
+                    </label>
+                    <label>
+                      Qty
+                      <input name="itemQty" type="number" min="1" step="1" placeholder="1" />
+                    </label>
+                    <label>
+                      Harga Satuan
+                      <input name="itemPrice" type="number" min="0" step="1000" placeholder="12500000" />
+                    </label>
+                    <label>
+                      Kategori Item
+                      <select name="itemCategory" id="pr-category-select">
+                        <option value="asset">Asset</option>
+                        <option value="non_asset">Non-Asset</option>
+                      </select>
+                    </label>
+                    <label class="full">
+                      Deskripsi Item
+                      <textarea name="itemDescription" rows="3" placeholder="Spesifikasi, alasan pembelian, kebutuhan bisnis"></textarea>
+                    </label>
+                  </div>
+                  <div class="pr-item-summary">
+                    <span id="pr-item-count" class="tag">0 item</span>
+                    <span id="pr-item-total" class="tag">Rp 0</span>
+                  </div>
+                  <div class="master-table pr-preview-table">
+                    <div class="master-table-head pr-preview-head">
+                      <span>Kode</span>
+                      <span>Nama</span>
+                      <span>Qty</span>
+                      <span>Harga</span>
+                      <span>Kategori</span>
+                      <span>Gudang</span>
+                      <span>Aksi</span>
+                    </div>
+                    <div id="pr-preview-body"></div>
+                  </div>
+                </article>
+
+                <article class="panel">
+                  <div class="panel-header">
+                    <div>
+                      <h3>Informasi Permintaan</h3>
+                      <p>Isi lokasi pemakaian, tanggal kebutuhan, dan catatan permintaan.</p>
+                    </div>
+                    <span class="pill soft">Request Info</span>
+                  </div>
+                  <div class="pr-request-grid">
+                    <label>
+                      Lokasi Pakai / Unit Tujuan
+                      <input name="useLocation" placeholder="Head Office / Cabang / Gudang" />
+                    </label>
+                    <label>
+                      Tanggal Dibutuhkan
+                      <input name="needByDate" type="date" />
+                    </label>
+                    <label class="full">
+                      Catatan Permintaan
+                      <textarea name="requestNote" rows="3" placeholder="Catatan tambahan untuk approver atau procurement"></textarea>
+                    </label>
+                  </div>
+                </article>
+
+                <article class="panel">
+                  <div class="panel-header">
+                    <div>
+                      <h3>Approval</h3>
+                      <p>Satu Purchase Request dapat memiliki beberapa approver manual.</p>
+                    </div>
+                    <button id="pr-add-approver" class="button action-button" type="button">Tambah Approval</button>
+                  </div>
+                  <div class="pr-approval-row">
+                    <label>
+                      Nama Approver
+                      <input name="approverName" placeholder="Nama approver" />
+                    </label>
+                    <label>
+                      Jabatan
+                      <input name="approverTitle" placeholder="Dept Head / Manager" />
+                    </label>
+                    <label>
+                      Email
+                      <input name="approverEmail" type="email" placeholder="approver@company.co.id" />
+                    </label>
+                  </div>
+                  <div class="pr-item-summary">
+                    <span id="pr-approver-count" class="tag">0 approver</span>
+                  </div>
+                    <div class="master-table pr-approval-table">
+                      <div class="master-table-head pr-approval-head">
+                        <span>No</span>
+                        <span>Nama Approver</span>
+                        <span>Jabatan</span>
+                        <span>Email</span>
+                        <span>Aksi</span>
+                      </div>
+                      <div id="pr-approval-body"></div>
+                    </div>
+                  </article>
+
+                <div class="form-actions pr-form-actions">
+                  <button id="pr-submit-button" class="button" type="submit">Submit Purchase Request</button>
+                  <button id="pr-reset" class="button secondary" type="button">Tutup Form</button>
+                </div>
+              </form>
+            </div>
+
+            <div id="pr-list"></div>
+            <div id="pr-detail-panel" class="panel app-hidden"></div>
+          </article>
         </section>
 
-        <section id="approval-queue" class="section">
+        <section
+          id="approval-queue"
+          class="section"
+          data-breadcrumb="Pembelian / Persetujuan"
+          data-title="Persetujuan"
+          data-subtitle="Antrian approval PR dan PO untuk company aktif."
+        >
           <div class="section-heading">
             <div>
               <p class="eyebrow">Control</p>
@@ -160,16 +725,55 @@
             <span class="pill">Approve atau reject berdasarkan stage</span>
           </div>
 
-          <article class="panel">
-            <div class="panel-header">
-              <h3>Antrian Approval</h3>
-              <span class="pill soft">Dept Head dan Finance</span>
-            </div>
-            <div id="approval-list" class="stack-list"></div>
-          </article>
-        </section>
+            <article class="panel">
+              <div class="panel-header">
+                <h3>Antrian Approval</h3>
+                <span class="pill soft">Dept Head dan Finance</span>
+              </div>
+              <div class="approval-context-stack">
+                <article class="panel approval-context-panel">
+                  <div class="panel-header">
+                    <div>
+                      <h3>Purchase Request</h3>
+                      <p>Approval PR mengikuti setup approver dari modul Purchase Request.</p>
+                    </div>
+                    <span id="approval-pr-count" class="pill soft">0 dokumen</span>
+                  </div>
+                  <div class="list-toolbar compact">
+                    <label>
+                      Search Nomor PR
+                      <input id="approval-pr-search-input" placeholder="Nomor PR" />
+                    </label>
+                  </div>
+                  <div id="approval-pr-list"></div>
+                </article>
+                <article class="panel approval-context-panel">
+                  <div class="panel-header">
+                    <div>
+                      <h3>Purchase Order</h3>
+                      <p>Approval PO mengikuti setup approver dari modul Purchase Order.</p>
+                    </div>
+                    <span id="approval-po-count" class="pill soft">0 dokumen</span>
+                  </div>
+                  <div class="list-toolbar compact">
+                    <label>
+                      Search Nomor PO
+                      <input id="approval-po-search-input" placeholder="Nomor PO" />
+                    </label>
+                  </div>
+                  <div id="approval-po-list"></div>
+                </article>
+              </div>
+            </article>
+          </section>
 
-        <section id="purchase-order" class="section">
+        <section
+          id="purchase-order"
+          class="section"
+          data-breadcrumb="Pembelian / Pesanan Pembelian"
+          data-title="Pesanan Pembelian"
+          data-subtitle="PO dari PR approved dan vendor yang dipilih."
+        >
           <div class="section-heading">
             <div>
               <p class="eyebrow">Execution</p>
@@ -178,44 +782,177 @@
             <span class="pill">PO dibuat dari PR yang approved</span>
           </div>
 
-          <div class="grid two-up">
-            <article class="panel">
-              <div class="panel-header">
-                <h3>Buat PO</h3>
-                <span class="pill soft">Procurement step</span>
+          <article class="panel">
+            <div class="panel-header">
+              <div>
+                <h3>Daftar Purchase Order</h3>
+                <p>PO dibuat dari Purchase Request yang sudah approved.</p>
               </div>
-              <form id="po-form" class="form-grid">
-                <label>
-                  PR Approved
-                  <select name="prId" id="approved-pr-select" required></select>
-                </label>
-                <label>
-                  Vendor Final
-                  <input name="vendorName" placeholder="PT Mitra Pengadaan" required />
-                </label>
-                <label>
-                  Payment Term
-                  <input name="paymentTerm" placeholder="30 hari" required />
-                </label>
-                <label>
-                  Tanggal Need By
-                  <input name="needBy" type="date" required />
-                </label>
-                <button class="button full" type="submit">Generate PO</button>
-              </form>
-            </article>
+              <button id="po-open-form" class="button action-button" type="button">Buat Purchase Order</button>
+            </div>
 
-            <article class="panel">
-              <div class="panel-header">
-                <h3>Daftar PO</h3>
-                <span class="pill soft">Issued dan waiting approval</span>
-              </div>
-              <div id="po-list" class="stack-list"></div>
-            </article>
-          </div>
+            <div class="list-toolbar">
+              <label>
+                Search Nomor PR / PO
+                <input id="po-search-input" placeholder="Contoh: CMP-HO-PR atau CMP-HO-PO" />
+              </label>
+            </div>
+
+            <div id="po-form-panel" class="inline-form-panel app-hidden">
+              <form id="po-form" class="pr-layout">
+                <article class="panel">
+                  <div class="panel-header">
+                    <div>
+                      <h3>Header Purchase Order</h3>
+                      <p>Pilih nomor Purchase Request yang sudah approved sebagai sumber PO.</p>
+                    </div>
+                    <span class="pill soft">Header</span>
+                  </div>
+                  <div class="pr-info-grid">
+                    <label>
+                      Nomor Purchase Request
+                      <select name="prId" id="approved-pr-select" required></select>
+                    </label>
+                    <label>
+                      Vendor Final
+                      <select name="vendorName" id="vendor-final-select" required></select>
+                    </label>
+                    <label>
+                      Payment Term
+                      <input name="paymentTerm" placeholder="30 hari" required />
+                    </label>
+                    <label>
+                      Tanggal Need By
+                      <input name="needBy" type="date" required />
+                    </label>
+                  </div>
+                </article>
+
+                <article class="panel">
+                  <div class="panel-header">
+                    <div>
+                      <h3>Daftar Barang dari Purchase Request</h3>
+                      <p>Item yang tampil mengikuti nomor Purchase Request yang dipilih.</p>
+                    </div>
+                    <span id="po-source-item-count" class="pill soft">0 item</span>
+                  </div>
+                  <div class="pr-item-summary">
+                    <span id="po-source-item-net-total" class="tag">Net Rp 0</span>
+                    <span id="po-source-item-vat-total" class="tag">VAT Rp 0</span>
+                    <span id="po-source-item-grand-total" class="tag">Total Rp 0</span>
+                  </div>
+                  <div class="master-table pr-preview-table">
+                    <div class="master-table-head pr-preview-head po-source-preview-head">
+                      <span>Kode</span>
+                      <span>Nama</span>
+                      <span>Qty</span>
+                      <span>Harga</span>
+                      <span>PPN (%)</span>
+                      <span>Net</span>
+                      <span>VAT</span>
+                      <span>Total</span>
+                      <span>Kategori</span>
+                      <span>Gudang</span>
+                      <span>Aksi</span>
+                    </div>
+                    <div id="po-source-preview-body"></div>
+                  </div>
+                </article>
+
+                <article class="panel">
+                  <div class="panel-header">
+                    <div>
+                      <h3>Dokumen Penawaran Vendor</h3>
+                      <p>Satu Purchase Order dapat menyimpan beberapa penawaran vendor dengan attachment PDF.</p>
+                    </div>
+                    <button id="po-add-quotation" class="button action-button" type="button">Tambah Penawaran</button>
+                  </div>
+                  <div class="pr-approval-row">
+                    <label>
+                      Nama Vendor
+                      <input name="poQuoteVendor" placeholder="Nama vendor penawaran" />
+                    </label>
+                    <label>
+                      Referensi Penawaran
+                      <input name="poQuoteRef" placeholder="Nomor / judul penawaran" />
+                    </label>
+                    <label>
+                      Attachment PDF
+                      <input name="poQuoteFile" type="file" accept=".pdf,application/pdf" />
+                    </label>
+                  </div>
+                  <div class="pr-item-summary">
+                    <span id="po-quote-count" class="tag">0 penawaran</span>
+                    <span id="po-quote-file-hint" class="tag">Pilih file PDF untuk dilampirkan.</span>
+                  </div>
+                  <div class="master-table pr-approval-table">
+                    <div class="master-table-head po-quote-head">
+                      <span>No</span>
+                      <span>Nama Vendor</span>
+                      <span>Referensi</span>
+                      <span>Attachment PDF</span>
+                      <span>Aksi</span>
+                    </div>
+                    <div id="po-quote-body"></div>
+                  </div>
+                </article>
+
+                <article class="panel">
+                  <div class="panel-header">
+                    <div>
+                      <h3>Approval</h3>
+                      <p>Satu Purchase Order dapat memiliki beberapa approver manual.</p>
+                    </div>
+                    <button id="po-add-approver" class="button action-button" type="button">Tambah Approval</button>
+                  </div>
+                  <div class="pr-approval-row">
+                    <label>
+                      Nama Approver
+                      <input name="poApproverName" placeholder="Nama approver" />
+                    </label>
+                    <label>
+                      Jabatan
+                      <input name="poApproverTitle" placeholder="Dept Head / Manager" />
+                    </label>
+                    <label>
+                      Email
+                      <input name="poApproverEmail" type="email" placeholder="approver@company.co.id" />
+                    </label>
+                  </div>
+                  <div class="pr-item-summary">
+                    <span id="po-approver-count" class="tag">0 approver</span>
+                  </div>
+                  <div class="master-table pr-approval-table">
+                    <div class="master-table-head pr-approval-head">
+                      <span>No</span>
+                      <span>Nama Approver</span>
+                      <span>Jabatan</span>
+                      <span>Email</span>
+                      <span>Aksi</span>
+                    </div>
+                    <div id="po-approval-body"></div>
+                  </div>
+                </article>
+
+                <div class="form-actions pr-form-actions">
+                  <button id="po-submit-button" class="button" type="submit">Generate Purchase Order</button>
+                  <button id="po-reset" class="button secondary" type="button">Tutup Form</button>
+                </div>
+              </form>
+            </div>
+
+            <div id="po-list"></div>
+            <div id="po-detail-panel" class="panel app-hidden"></div>
+          </article>
         </section>
 
-        <section id="receive" class="section">
+        <section
+          id="receive"
+          class="section"
+          data-breadcrumb="Pembelian / Penerimaan Barang"
+          data-title="Penerimaan Barang"
+          data-subtitle="Receive barang/jasa dan posting otomatis sesuai tipe asset atau non-asset."
+        >
           <div class="section-heading">
             <div>
               <p class="eyebrow">Warehouse / User</p>
@@ -224,51 +961,91 @@
             <span class="pill">Asset vs non-asset + jurnal otomatis</span>
           </div>
 
-          <div class="grid two-up">
+          <div class="grid receive-grid">
             <article class="panel">
               <div class="panel-header">
-                <h3>Catat Receive</h3>
-                <span class="pill soft">Dari PO yang siap diterima</span>
+                <div>
+                  <h3>Daftar PO Siap Receive</h3>
+                  <p>Pilih PO yang akan diterima, lalu klik tombol Receive di sisi kanan.</p>
+                </div>
+                <span class="pill soft">Issued / Partial</span>
               </div>
-              <form id="receive-form" class="form-grid">
-                <label>
-                  PO
-                  <select name="poId" id="issued-po-select" required></select>
-                </label>
-                <label>
-                  Diterima Oleh
-                  <input name="receiver" placeholder="Nama penerima" required />
-                </label>
-                <label>
-                  Tipe Receive
-                  <select name="receiveType" required>
-                    <option value="asset">Asset</option>
-                    <option value="non_asset">Non-Asset</option>
-                  </select>
-                </label>
-                <label>
-                  Referensi Dokumen
-                  <input name="documentRef" placeholder="SJ-001 / BAST-002" required />
-                </label>
-                <label class="full">
-                  Catatan Receive
-                  <textarea name="note" rows="4" placeholder="Kondisi barang, serial number, catatan penerimaan" required></textarea>
-                </label>
-                <button class="button full" type="submit">Simpan Receive & Posting Jurnal</button>
-              </form>
+
+              <div id="receive-po-list"></div>
+
+              <div id="receive-form-panel" class="inline-form-panel app-hidden">
+                <form id="receive-form" class="form-grid">
+                  <input id="receive-po-id" name="poId" type="hidden" />
+                  <div class="full">
+                    <div class="panel-header">
+                      <div>
+                        <h3>Detail PO yang Akan Di-receive</h3>
+                        <p>Data PO terkunci dari row yang dipilih.</p>
+                      </div>
+                      <button class="button secondary" data-action="close-receive-form" type="button">Tutup Form</button>
+                    </div>
+                    <div id="receive-po-detail" class="receive-detail-grid"></div>
+                  </div>
+                  <label>
+                    Diterima Oleh
+                    <input name="receiver" placeholder="Nama penerima" required />
+                  </label>
+                  <label>
+                    Jenis Dokumen
+                    <select name="documentType" required>
+                      <option value="BAST">BAST</option>
+                      <option value="Surat Jalan">Surat Jalan</option>
+                      <option value="Serah Terima">Dokumen Serah Terima</option>
+                    </select>
+                  </label>
+                  <label>
+                    Nomor Dokumen
+                    <input name="documentRef" placeholder="SJ-001 / BAST-002" required />
+                  </label>
+                  <label>
+                    Upload Dokumen Serah Terima / BAST
+                    <input name="handoverFile" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" required />
+                  </label>
+                  <div class="full">
+                    <div class="panel-header receive-line-header">
+                      <div>
+                        <h3>Validasi Barang / Jasa dari PO</h3>
+                        <p>Isi qty diterima sesuai fisik barang atau jasa. Qty tidak boleh melebihi sisa PO.</p>
+                      </div>
+                      <span id="receive-line-summary" class="pill soft">0 item</span>
+                    </div>
+                    <div class="master-table receive-line-table">
+                      <div class="master-table-head receive-line-head">
+                        <span>Kode</span>
+                        <span>Nama Barang / Jasa</span>
+                        <span>Tipe</span>
+                        <span>Qty PO</span>
+                        <span>Sudah Receive</span>
+                        <span>Sisa</span>
+                        <span>Qty Receive</span>
+                      </div>
+                      <div id="receive-line-body"></div>
+                    </div>
+                  </div>
+                  <label class="full">
+                    Catatan Receive
+                    <textarea name="note" rows="4" placeholder="Kondisi barang, serial number, catatan penerimaan" required></textarea>
+                  </label>
+                  <button class="button full" type="submit">Simpan Receive & Posting Jurnal</button>
+                </form>
+              </div>
             </article>
 
-            <article class="panel">
-              <div class="panel-header">
-                <h3>Histori Receive</h3>
-                <span class="pill soft">Asset register / expense posting</span>
-              </div>
-              <div id="receive-list" class="stack-list"></div>
-            </article>
           </div>
         </section>
 
-        <section id="journal" class="section">
+        <section
+          id="journal"
+          class="section"
+          data-breadcrumb="Buku Besar / Jurnal Umum"
+          data-title="Jurnal Umum"
+          data-subtitle="Review jurnal otomatis hasil receive dan posting GR/IR."
+        >
           <div class="section-heading">
             <div>
               <p class="eyebrow">Accounting</p>
@@ -295,7 +1072,8 @@
             </article>
           </div>
         </section>
-      </main>
+        </main>
+      </div>
     </div>
 
     <script src="app.js"></script>
