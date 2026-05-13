@@ -2,6 +2,10 @@ const STORAGE_KEY = "erp-pt-kecil-v2";
 const FINAL_APPROVAL_THRESHOLD = 50000000;
 const PO_APPROVAL_THRESHOLD = 75000000;
 const PAGE_SIZE = 10;
+const DOCUMENT_NUMBER_RULES = {
+  PR: { fixedCode: "21", sequenceLength: 5 },
+  PO: { fixedCode: "22", sequenceLength: 5 }
+};
 
 const coaMaster = [
   { code: "1101", name: "Persediaan Barang", kind: "non_asset" },
@@ -205,6 +209,7 @@ const seedState = {
     {
       id: "PR-0001",
       companyId: "CMP-001",
+      companyCode: "CMP-HO",
       title: "Pengadaan laptop tim finance",
       requester: "Nadia",
       department: "Finance",
@@ -227,6 +232,7 @@ const seedState = {
     {
       id: "PR-0002",
       companyId: "CMP-002",
+      companyCode: "CMP-TRD",
       title: "ATK bulanan operasional",
       requester: "Rizal",
       department: "GA",
@@ -251,6 +257,7 @@ const seedState = {
       {
         id: "PO-0001",
         companyId: "CMP-001",
+        companyCode: "CMP-HO",
         prId: "PR-0001",
         vendorName: "PT Solusi Digital Nusantara",
         paymentTerm: "30 hari",
@@ -339,17 +346,17 @@ const ui = {
 function loadState() {
   const saved = localStorage.getItem(STORAGE_KEY);
   if (!saved) {
-    return structuredClone(seedState);
+    return normalizeDocumentCompanyCodes(structuredClone(seedState));
   }
 
   const parsed = JSON.parse(saved);
   const baseState = structuredClone(seedState);
-  return {
+  return normalizeDocumentCompanyCodes({
     ...baseState,
     ...parsed,
     session: { ...baseState.session, ...parsed.session },
     counters: { ...baseState.counters, ...parsed.counters }
-  };
+  });
 }
 
 let state = loadState();
@@ -418,9 +425,48 @@ function formatDocumentDateToken(value = new Date()) {
   return `${day}${month}${year}`;
 }
 
+function formatDocumentYearToken(value = new Date()) {
+  const date = value instanceof Date ? value : new Date(value);
+  return String(date.getFullYear()).slice(-2);
+}
+
+function getCompanyCodeSnapshot(companyId, sourceState = state) {
+  return String(sourceState.companies.find((item) => item.id === companyId)?.code || "CMP").trim().toUpperCase();
+}
+
+function normalizeDocumentCompanyCodes(nextState) {
+  ["purchaseRequests", "purchaseOrders"].forEach((collectionKey) => {
+    if (!Array.isArray(nextState[collectionKey])) {
+      return;
+    }
+
+    nextState[collectionKey] = nextState[collectionKey].map((item) => ({
+      ...item,
+      companyCode: item.companyCode || getCompanyCodeSnapshot(item.companyId, nextState)
+    }));
+  });
+
+  return nextState;
+}
+
 function buildDocumentNumber(companyId, moduleCode, createdAt, collection) {
-  const company = getCompanyById(companyId);
-  const companyCode = String(company?.code || "CMP").trim().toUpperCase();
+  const rule = DOCUMENT_NUMBER_RULES[moduleCode];
+  if (rule) {
+    const prefix = `${formatDocumentYearToken(createdAt)}${rule.fixedCode}`;
+    const lastSequence = collection.reduce((highest, item) => {
+      const documentId = String(item.id || "");
+      if (item.companyId !== companyId || !documentId.startsWith(prefix)) {
+        return highest;
+      }
+
+      const sequence = Number(documentId.slice(prefix.length));
+      return Number.isFinite(sequence) ? Math.max(highest, sequence) : highest;
+    }, 0);
+    const nextSequence = lastSequence + 1;
+    return `${prefix}${String(nextSequence).padStart(rule.sequenceLength, "0")}`;
+  }
+
+  const companyCode = getCompanyCodeSnapshot(companyId);
   const dateToken = formatDocumentDateToken(createdAt);
   const prefix = `${companyCode}-${moduleCode}-${dateToken}-`;
   const sameSeries = collection.filter((item) => {
@@ -496,12 +542,18 @@ function getCoaByCode(code) {
   return coaMaster.find((item) => item.code === code);
 }
 
-function getPrById(id) {
-  return state.purchaseRequests.find((item) => item.id === id);
+function getPrById(id, companyId = state.session.activeCompanyId) {
+  return (
+    state.purchaseRequests.find((item) => item.id === id && (!companyId || item.companyId === companyId)) ||
+    state.purchaseRequests.find((item) => item.id === id)
+  );
 }
 
-function getPoById(id) {
-  return state.purchaseOrders.find((item) => item.id === id);
+function getPoById(id, companyId = state.session.activeCompanyId) {
+  return (
+    state.purchaseOrders.find((item) => item.id === id && (!companyId || item.companyId === companyId)) ||
+    state.purchaseOrders.find((item) => item.id === id)
+  );
 }
 
 function activeVendors() {
@@ -3366,6 +3418,7 @@ function submitPr(event) {
 
   if (existingPr && existingPr.companyId === state.session.activeCompanyId && existingPr.status !== "approved") {
     Object.assign(existingPr, payload, {
+      companyCode: getCompanyCodeSnapshot(existingPr.companyId),
       status: "submitted",
       approvalStage: "dept_head"
     });
@@ -3376,6 +3429,7 @@ function submitPr(event) {
     const pr = {
       id: buildDocumentNumber(state.session.activeCompanyId, "PR", createdAt, state.purchaseRequests),
       companyId: state.session.activeCompanyId,
+      companyCode: getCompanyCodeSnapshot(state.session.activeCompanyId),
       ...payload,
       status: "submitted",
       approvalStage: "dept_head",
@@ -3478,6 +3532,7 @@ function submitPo(event) {
   const po = {
     id: buildDocumentNumber(state.session.activeCompanyId, "PO", createdAt, state.purchaseOrders),
     companyId: state.session.activeCompanyId,
+    companyCode: getCompanyCodeSnapshot(state.session.activeCompanyId),
     prId,
     vendorName: vendor?.name || "",
     paymentTerm: formData.get("paymentTerm"),
