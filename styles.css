@@ -1213,6 +1213,18 @@ textarea {
   transform: translateY(-1px);
 }
 
+.icon-button[data-action="cancel-po"] {
+  background: rgba(191, 63, 56, 0.08);
+  border-color: rgba(191, 63, 56, 0.22);
+  color: var(--danger);
+  font-weight: 900;
+}
+
+.icon-button[data-action="cancel-po"]:hover {
+  background: rgba(191, 63, 56, 0.16);
+  transform: translateY(-1px);
+}
+
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

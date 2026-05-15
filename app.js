@@ -752,6 +752,7 @@ function poStatusBadge(po) {
     issued: "PO Issued",
     waiting_approval: "PO Menunggu Approval",
     rejected: "PO Rejected",
+    cancelled: "PO Cancelled",
     partial_received: "PO Partial Received",
     received: "PO Received"
   };
@@ -763,7 +764,7 @@ function poStatusClass(po) {
     return "muted";
   }
 
-  if (po.status === "rejected") {
+  if (["rejected", "cancelled"].includes(po.status)) {
     return "danger";
   }
 
@@ -2247,6 +2248,11 @@ function renderPoList() {
                   ${
                     canCreatePo
                       ? `<button class="icon-button" title="Create PO" data-action="create-po-from-pr" data-id="${pr.id}" type="button">&#10133;</button>`
+                      : ""
+                  }
+                  ${
+                    po?.status === "issued"
+                      ? `<button class="icon-button" title="Cancel PO Issued" data-action="cancel-po" data-id="${po.id}" type="button">&#10005;</button>`
                       : ""
                   }
                 </span>
@@ -3814,6 +3820,24 @@ function rejectPo(id) {
   refreshAll();
 }
 
+function cancelPo(id) {
+  const po = getPoById(id);
+  if (!po || po.companyId !== state.session.activeCompanyId || po.status !== "issued") {
+    return;
+  }
+
+  po.status = "cancelled";
+  po.cancelledAt = new Date().toISOString();
+  po.history = [...(po.history || []), "PO cancelled oleh procurement"];
+
+  if (ui.selectedReceivePoId === po.id) {
+    ui.selectedReceivePoId = "";
+    ui.receiveFormOpen = false;
+  }
+
+  refreshAll();
+}
+
 function submitReceive(event) {
   event.preventDefault();
   const formData = new FormData(event.target);
@@ -4628,6 +4652,10 @@ function bindActionButtons() {
 
     if (action === "reject-po") {
       rejectPo(id);
+    }
+
+    if (action === "cancel-po") {
+      cancelPo(id);
     }
 
     if (action === "resend-approval-email") {
