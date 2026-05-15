@@ -1006,16 +1006,24 @@
                     Upload Dokumen Serah Terima / BAST
                     <input name="handoverFile" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" required />
                   </label>
+                  <label class="full">
+                    Basis Penerimaan Partial
+                    <select id="receive-basis" name="receiveBasis" required>
+                      <option value="quantity">Berdasarkan Quantity</option>
+                      <option value="amount">Berdasarkan Nominal</option>
+                      <option value="deliverable">Berdasarkan Dokumen Deliverables</option>
+                    </select>
+                  </label>
                   <div class="full">
                     <div class="panel-header receive-line-header">
                       <div>
                         <h3>Validasi Barang / Jasa dari PO</h3>
-                        <p>Isi qty diterima sesuai fisik barang atau jasa. Qty tidak boleh melebihi sisa PO.</p>
+                        <p>Pilih basis partial receive, lalu isi nilai sesuai sisa PO yang masih terbuka.</p>
                       </div>
                       <span id="receive-line-summary" class="pill soft">0 item</span>
                     </div>
                     <div class="master-table receive-line-table">
-                      <div class="master-table-head receive-line-head">
+                      <div id="receive-line-head" class="master-table-head receive-line-head">
                         <span>Kode</span>
                         <span>Nama Barang / Jasa</span>
                         <span>Tipe</span>

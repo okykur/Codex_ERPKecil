@@ -813,9 +813,9 @@ textarea {
 
 .master-table-head.receive-line-head,
 .master-table-row.receive-line-row {
-  grid-template-columns: 90px minmax(220px, 1fr) 135px 80px 115px 70px 130px;
+  grid-template-columns: 90px minmax(220px, 1fr) 145px 145px 160px 160px 190px;
   gap: 10px;
-  min-width: 920px;
+  min-width: 1160px;
   align-items: center;
   text-align: left;
 }
@@ -831,10 +831,26 @@ textarea {
 
 .receive-line-row .table-input {
   width: 100%;
-  max-width: 120px;
+  max-width: 160px;
   min-width: 0;
   padding: 10px 12px;
   text-align: left;
+}
+
+.receive-line-row .receive-money-input {
+  max-width: 180px;
+}
+
+.receive-final-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.receive-final-cell input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--blue);
 }
 
 .receive-line-table {

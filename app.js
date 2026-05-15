@@ -6,6 +6,11 @@ const DOCUMENT_NUMBER_RULES = {
   PR: { fixedCode: "21", sequenceLength: 5 },
   PO: { fixedCode: "22", sequenceLength: 5 }
 };
+const RECEIVE_BASIS_LABELS = {
+  quantity: "Quantity",
+  amount: "Nominal",
+  deliverable: "Dokumen Deliverables"
+};
 
 const coaMaster = [
   { code: "1101", name: "Persediaan Barang", kind: "non_asset" },
@@ -279,6 +284,7 @@ const seedState = {
       prId: "PR-0001",
       receiver: "Bimo",
       receiveType: "asset",
+      receiveBasis: "quantity",
       documentRef: "BAST-001",
       note: "Laptop diterima lengkap, serial number tercatat.",
       amount: 38000000,
@@ -327,6 +333,7 @@ const ui = {
   approvalPoPage: 1,
   receiveFormOpen: false,
   selectedReceivePoId: "",
+  receiveBasis: "quantity",
   receivePage: 1,
   editingCompanyId: "",
   companyFormOpen: false,
@@ -2368,6 +2375,12 @@ function getReceiveLineType(item) {
   return item.category === "non_asset" ? "Jasa / Non-Asset" : "Barang / Asset";
 }
 
+function getPoLineTotalAmount(item) {
+  const netAmount = Number(item.qty || 0) * Number(item.price || 0);
+  const vatAmount = netAmount * (Number(getItemVatPercent(item) || 0) / 100);
+  return netAmount + vatAmount;
+}
+
 function getReceivedQty(poId, itemIndex) {
   return companyScoped(state.receipts).reduce((total, receipt) => {
     if (receipt.poId !== poId) {
@@ -2385,18 +2398,64 @@ function getReceivedQty(poId, itemIndex) {
   }, 0);
 }
 
+function getReceivedAmount(poId, itemIndex) {
+  return companyScoped(state.receipts).reduce((total, receipt) => {
+    if (receipt.poId !== poId || !Array.isArray(receipt.items)) {
+      return total;
+    }
+
+    const line = receipt.items.find((item) => Number(item.itemIndex) === itemIndex);
+    if (!line) {
+      return total;
+    }
+
+    if (line.amountReceived !== undefined) {
+      return total + Number(line.amountReceived || 0);
+    }
+
+    const legacyAmount = Number(line.price || 0) * Number(line.qtyReceived || 0) * (1 + Number(line.vatPercent || 0) / 100);
+    return total + legacyAmount;
+  }, 0);
+}
+
+function hasFinalDeliverable(poId, itemIndex) {
+  return companyScoped(state.receipts).some((receipt) =>
+    receipt.poId === poId &&
+    Array.isArray(receipt.items) &&
+    receipt.items.some((item) => Number(item.itemIndex) === itemIndex && item.isFinalDeliverable)
+  );
+}
+
 function getPoRemainingQty(po, itemIndex) {
   const item = getPoLineItems(po)[itemIndex];
   return Math.max(0, Number(item?.qty || 0) - getReceivedQty(po.id, itemIndex));
 }
 
-function poHasRemainingQty(po) {
-  return getPoLineItems(po).some((_, index) => getPoRemainingQty(po, index) > 0);
+function getPoRemainingAmount(po, itemIndex) {
+  const item = getPoLineItems(po)[itemIndex];
+  return Math.max(0, getPoLineTotalAmount(item || {}) - getReceivedAmount(po.id, itemIndex));
+}
+
+function isPoLineFullyReceived(po, itemIndex) {
+  const item = getPoLineItems(po)[itemIndex];
+  if (!item) {
+    return true;
+  }
+
+  return (
+    getPoRemainingQty(po, itemIndex) <= 0 ||
+    getPoRemainingAmount(po, itemIndex) <= 0 ||
+    hasFinalDeliverable(po.id, itemIndex)
+  );
+}
+
+function poHasRemainingReceiveProgress(po) {
+  return getPoLineItems(po).some((_, index) => !isPoLineFullyReceived(po, index));
 }
 
 function getReceivablePurchaseOrders() {
   return companyScoped(state.purchaseOrders).filter((item) =>
-    ["issued", "partial_received"].includes(item.status) && poHasRemainingQty(item)
+    ["issued", "partial_received"].includes(item.status) && poHasRemainingReceiveProgress(item)
   );
 }
 
@@ -2434,7 +2493,7 @@ function renderReceivePoList() {
       ${pageInfo.items
         .map((po) => {
           const company = getCompanyById(po.companyId);
-          const remainingLines = getPoLineItems(po).filter((_, index) => getPoRemainingQty(po, index) > 0).length;
+          const remainingLines = getPoLineItems(po).filter((_, index) => !isPoLineFullyReceived(po, index)).length;
           return `
             <div class="receive-po-row">
               <span class="po-list-emphasis">${po.id}</span>
@@ -2461,6 +2520,7 @@ function renderReceiveForm() {
   const panel = document.getElementById("receive-form-panel");
   const poIdField = document.getElementById("receive-po-id");
   const detail = document.getElementById("receive-po-detail");
+  const basisField = document.getElementById("receive-basis");
   const selectedPo = getPoById(ui.selectedReceivePoId);
   const po = selectedPo?.companyId === state.session.activeCompanyId ? selectedPo : null;
   const pr = po ? getPrById(po.prId) : null;
@@ -2472,6 +2532,9 @@ function renderReceiveForm() {
 
   panel.classList.toggle("app-hidden", !ui.receiveFormOpen || !po);
   poIdField.value = po?.id || "";
+  if (basisField && basisField.value !== ui.receiveBasis) {
+    basisField.value = ui.receiveBasis;
+  }
 
   if (!po) {
     detail.innerHTML = "";
@@ -2522,17 +2585,51 @@ function renderIssuedPoOptions() {
 }
 
 function renderReceiveLines() {
+  const head = document.getElementById("receive-line-head");
   const body = document.getElementById("receive-line-body");
   const summary = document.getElementById("receive-line-summary");
   const selectedPo = getPoById(ui.selectedReceivePoId);
   const po = selectedPo?.companyId === state.session.activeCompanyId ? selectedPo : null;
+  const basis = ui.receiveBasis || "quantity";
 
-  if (!body || !summary) {
+  if (!head || !body || !summary) {
     return;
   }
 
   const items = getPoLineItems(po);
-  summary.textContent = `${items.length} item`;
+  summary.textContent = `${items.length} item - ${RECEIVE_BASIS_LABELS[basis] || "Quantity"}`;
+
+  if (basis === "amount") {
+    head.innerHTML = `
+      <span>Kode</span>
+      <span>Nama Barang / Jasa</span>
+      <span>Tipe</span>
+      <span>Total PO</span>
+      <span>Sudah Receive</span>
+      <span>Sisa Nominal</span>
+      <span>Nominal Receive</span>
+    `;
+  } else if (basis === "deliverable") {
+    head.innerHTML = `
+      <span>Kode</span>
+      <span>Nama Barang / Jasa</span>
+      <span>Tipe</span>
+      <span>Sisa Nominal</span>
+      <span>Nominal Deliverable</span>
+      <span>Dokumen Deliverable</span>
+      <span>Final</span>
+    `;
+  } else {
+    head.innerHTML = `
+      <span>Kode</span>
+      <span>Nama Barang / Jasa</span>
+      <span>Tipe</span>
+      <span>Qty PO</span>
+      <span>Sudah Receive</span>
+      <span>Sisa</span>
+      <span>Qty Receive</span>
+    `;
+  }
 
   if (!po || !items.length) {
     body.innerHTML = `
@@ -2554,6 +2651,72 @@ function renderReceiveLines() {
       const orderedQty = Number(item.qty || 0);
       const receivedQty = getReceivedQty(po.id, index);
       const remainingQty = Math.max(0, orderedQty - receivedQty);
+      const lineAmount = getPoLineTotalAmount(item);
+      const receivedAmount = getReceivedAmount(po.id, index);
+      const remainingAmount = Math.max(0, lineAmount - receivedAmount);
+      const completed = isPoLineFullyReceived(po, index);
+      const disabled = completed ? "disabled" : "";
+
+      if (basis === "amount") {
+        return `
+          <div class="master-table-row receive-line-row">
+            <span>POL-${String(index + 1).padStart(3, "0")}</span>
+            <span>${item.name || "-"}</span>
+            <span>${getReceiveLineType(item)}</span>
+            <span>${currency(lineAmount)}</span>
+            <span>${currency(receivedAmount)}</span>
+            <span>${currency(remainingAmount)}</span>
+            <span>
+              <input
+                class="table-input receive-money-input"
+                name="receiveAmount-${index}"
+                type="number"
+                min="0"
+                max="${remainingAmount}"
+                step="1000"
+                value="${remainingAmount > 0 ? remainingAmount : 0}"
+                ${disabled}
+              />
+            </span>
+          </div>
+        `;
+      }
+
+      if (basis === "deliverable") {
+        return `
+          <div class="master-table-row receive-line-row">
+            <span>POL-${String(index + 1).padStart(3, "0")}</span>
+            <span>${item.name || "-"}</span>
+            <span>${getReceiveLineType(item)}</span>
+            <span>${currency(remainingAmount)}</span>
+            <span>
+              <input
+                class="table-input receive-money-input"
+                name="receiveAmount-${index}"
+                type="number"
+                min="0"
+                max="${remainingAmount}"
+                step="1000"
+                value="${remainingAmount > 0 ? remainingAmount : 0}"
+                ${disabled}
+              />
+            </span>
+            <span>
+              <input
+                class="table-input"
+                name="deliverableName-${index}"
+                placeholder="BAST milestone / laporan"
+                ${disabled}
+              />
+            </span>
+            <span class="receive-final-cell">
+              <input name="deliverableFinal-${index}" type="checkbox" ${disabled} />
+              <small>Final</small>
+            </span>
+          </div>
+        `;
+      }
+
       return `
         <div class="master-table-row receive-line-row">
           <span>POL-${String(index + 1).padStart(3, "0")}</span>
@@ -2613,6 +2776,9 @@ function renderReceiveList() {
             }</span>
           </header>
           <p>${receipt.note}</p>
+          <div class="inline-tags">
+            <span class="tag">Basis: ${RECEIVE_BASIS_LABELS[receipt.receiveBasis || "quantity"]}</span>
+          </div>
           ${
             Array.isArray(receipt.items) && receipt.items.length
               ? `
@@ -2620,7 +2786,13 @@ function renderReceiveList() {
                   ${receipt.items
                     .map(
                       (item) => `
-                        <span>${item.name} - ${item.type} - Qty ${item.qtyReceived}</span>
+                        <span>${item.name} - ${item.type} - ${
+                          receipt.receiveBasis === "deliverable"
+                            ? `${item.deliverableName || "Deliverable"}${item.isFinalDeliverable ? " (Final)" : ""} - ${currency(item.amountReceived || 0)}`
+                            : receipt.receiveBasis === "amount"
+                              ? `Nominal ${currency(item.amountReceived || 0)}`
+                              : `Qty ${item.qtyReceived} - ${currency(item.amountReceived || 0)}`
+                        }</span>
                       `
                     )
                     .join("")}
@@ -3598,10 +3770,18 @@ function submitReceive(event) {
   }
 
   const poItems = getPoLineItems(po);
+  const receiveBasis = formData.get("receiveBasis") || "quantity";
   const receivedItems = poItems
     .map((item, index) => {
       const qtyReceived = Number(formData.get(`receiveQty-${index}`) || 0);
       const remainingQty = getPoRemainingQty(po, index);
+      const lineAmount = getPoLineTotalAmount(item);
+      const remainingAmount = getPoRemainingAmount(po, index);
+      const manualAmount = Number(formData.get(`receiveAmount-${index}`) || 0);
+      const quantityAmount = qtyReceived * Number(item.price || 0) * (1 + Number(getItemVatPercent(item) || 0) / 100);
+      const deliverableName = String(formData.get(`deliverableName-${index}`) || "").trim();
+      const isFinalDeliverable = formData.get(`deliverableFinal-${index}`) === "on";
+      const amountReceived = receiveBasis === "quantity" ? quantityAmount : manualAmount;
       return {
         itemIndex: index,
         name: item.name,
@@ -3609,17 +3789,39 @@ function submitReceive(event) {
         type: getReceiveLineType(item),
         orderedQty: Number(item.qty || 0),
         previousReceivedQty: getReceivedQty(po.id, index),
+        poLineAmount: lineAmount,
+        previousReceivedAmount: getReceivedAmount(po.id, index),
         remainingQty,
+        remainingAmount,
         qtyReceived,
         price: Number(item.price || 0),
-        vatPercent: getItemVatPercent(item)
+        vatPercent: getItemVatPercent(item),
+        amountReceived,
+        deliverableName,
+        isFinalDeliverable
       };
     })
-    .filter((item) => item.qtyReceived > 0);
-  const invalidQty = receivedItems.some((item) => item.qtyReceived > item.remainingQty);
+    .filter((item) => {
+      if (receiveBasis === "quantity") {
+        return item.qtyReceived > 0;
+      }
+
+      if (receiveBasis === "deliverable") {
+        return item.amountReceived > 0 || item.deliverableName || item.isFinalDeliverable;
+      }
+
+      return item.amountReceived > 0;
+    });
+  const invalidQty = receivedItems.some((item) => receiveBasis === "quantity" && item.qtyReceived > item.remainingQty);
+  const invalidAmount = receivedItems.some(
+    (item) => ["amount", "deliverable"].includes(receiveBasis) && item.amountReceived > item.remainingAmount
+  );
+  const invalidDeliverable = receivedItems.some(
+    (item) => receiveBasis === "deliverable" && (!item.deliverableName || item.amountReceived <= 0)
+  );
   const handoverFile = formData.get("handoverFile");
 
-  if (!receivedItems.length || invalidQty || !handoverFile?.name) {
+  if (!receivedItems.length || invalidQty || invalidAmount || invalidDeliverable || !handoverFile?.name) {
     return;
   }
 
@@ -3633,11 +3835,7 @@ function submitReceive(event) {
   const journalId = nextId("JRN", "journal");
   const hasAsset = receivedItems.some((item) => item.category !== "non_asset");
   const coa = getCoaByCode(pr.coaCode) || getCoaByCode(hasAsset ? "1501" : "5101");
-  const amount = receivedItems.reduce((total, item) => {
-    const net = item.price * item.qtyReceived;
-    const vat = net * (Number(item.vatPercent || 0) / 100);
-    return total + net + vat;
-  }, 0);
+  const amount = receivedItems.reduce((total, item) => total + Number(item.amountReceived || 0), 0);
   const createdAt = new Date().toISOString();
   const receiptId = buildDocumentNumber(state.session.activeCompanyId, "RCV", createdAt, state.receipts);
 
@@ -3648,6 +3846,7 @@ function submitReceive(event) {
     prId: pr.id,
     receiver: formData.get("receiver"),
     receiveType,
+    receiveBasis,
     documentType: formData.get("documentType"),
     documentRef: formData.get("documentRef"),
     documentFileName: handoverFile.name,
@@ -3679,9 +3878,14 @@ function submitReceive(event) {
 
   state.receipts.push(receipt);
   state.journals.push(journal);
-  po.status = poHasRemainingQty(po) ? "partial_received" : "received";
-  po.history.push(po.status === "received" ? "PO sudah di-receive penuh" : "PO partial receive");
+  po.status = poHasRemainingReceiveProgress(po) ? "partial_received" : "received";
+  po.history.push(
+    po.status === "received"
+      ? `PO sudah di-receive penuh berdasarkan ${RECEIVE_BASIS_LABELS[receiveBasis]}`
+      : `PO partial receive berdasarkan ${RECEIVE_BASIS_LABELS[receiveBasis]}`
+  );
   event.target.reset();
+  ui.receiveBasis = "quantity";
   ui.receiveFormOpen = false;
   ui.selectedReceivePoId = "";
   refreshAll();
@@ -4215,6 +4419,10 @@ function bindForms() {
   });
   document.getElementById("po-form").addEventListener("input", syncPoFinancialPreview);
   document.getElementById("po-form").addEventListener("change", syncPoFinancialPreview);
+  document.getElementById("receive-basis").addEventListener("change", (event) => {
+    ui.receiveBasis = event.target.value;
+    renderReceiveLines();
+  });
 }
 
 function bindActionButtons() {
@@ -4327,6 +4535,7 @@ function bindActionButtons() {
   if (action === "open-receive-po") {
     ui.selectedReceivePoId = id;
     ui.receiveFormOpen = true;
+    ui.receiveBasis = "quantity";
     document.getElementById("receive-form").reset();
     renderReceiveForm();
     document.getElementById("receive-form-panel").scrollIntoView({ behavior: "smooth", block: "start" });
@@ -4335,6 +4544,7 @@ function bindActionButtons() {
   if (action === "close-receive-form") {
     ui.selectedReceivePoId = "";
     ui.receiveFormOpen = false;
+    ui.receiveBasis = "quantity";
     document.getElementById("receive-form").reset();
     renderReceiveForm();
   }
