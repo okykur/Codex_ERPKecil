@@ -11,6 +11,11 @@ const RECEIVE_BASIS_LABELS = {
   amount: "Nominal",
   deliverable: "Dokumen Deliverables"
 };
+const RECEIVE_KIND_LABELS = {
+  goods: "Receiving Barang",
+  service: "Receiving Jasa",
+  mixed: "Receiving Barang & Jasa"
+};
 
 const coaMaster = [
   { code: "1101", name: "Persediaan Barang", kind: "non_asset" },
@@ -2375,6 +2380,35 @@ function getReceiveLineType(item) {
   return item.category === "non_asset" ? "Jasa / Non-Asset" : "Barang / Asset";
 }
 
+function getPoReceiveKind(po) {
+  const items = getPoLineItems(po);
+  const categories = [...new Set(items.map((item) => (item.category === "non_asset" ? "service" : "goods")))];
+
+  if (!categories.length) {
+    return "goods";
+  }
+
+  return categories.length === 1 ? categories[0] : "mixed";
+}
+
+function getReceiveBasisOptions(po) {
+  const kind = getPoReceiveKind(po);
+  if (kind === "goods") {
+    return ["quantity"];
+  }
+
+  if (kind === "service") {
+    return ["deliverable", "amount"];
+  }
+
+  return ["quantity", "deliverable", "amount"];
+}
+
+function normalizeReceiveBasisForPo(po, requestedBasis = ui.receiveBasis) {
+  const options = getReceiveBasisOptions(po);
+  return options.includes(requestedBasis) ? requestedBasis : options[0];
+}
+
 function getPoLineTotalAmount(item) {
   const netAmount = Number(item.qty || 0) * Number(item.price || 0);
   const vatAmount = netAmount * (Number(getItemVatPercent(item) || 0) / 100);
@@ -2487,6 +2521,7 @@ function renderReceivePoList() {
         <span>Ref PR</span>
         <span>Nilai</span>
         <span>Status</span>
+        <span>Tipe Receive</span>
         <span>Sisa Item</span>
         <span>Aksi</span>
       </div>
@@ -2503,6 +2538,7 @@ function renderReceivePoList() {
               <span>${po.prId}</span>
               <span class="po-list-emphasis">${currency(po.totalAmount || po.amount || 0)}</span>
               <span class="status-text ${poStatusClass(po)}">${poStatusBadge(po).replace(` (${po.id})`, "")}</span>
+              <span>${RECEIVE_KIND_LABELS[getPoReceiveKind(po)]}</span>
               <span>${remainingLines} line</span>
               <span>
                 <button class="button action-button receive-row-button" data-action="open-receive-po" data-id="${po.id}" type="button">Receive</button>
@@ -2542,6 +2578,16 @@ function renderReceiveForm() {
     return;
   }
 
+  const receiveKind = getPoReceiveKind(po);
+  const receiveBasisOptions = getReceiveBasisOptions(po);
+  ui.receiveBasis = normalizeReceiveBasisForPo(po, ui.receiveBasis);
+  if (basisField) {
+    basisField.innerHTML = receiveBasisOptions
+      .map((basis) => `<option value="${basis}">Berdasarkan ${RECEIVE_BASIS_LABELS[basis]}</option>`)
+      .join("");
+    basisField.value = ui.receiveBasis;
+  }
+
   detail.innerHTML = `
     <div class="pr-detail-field">
       <span class="pr-detail-label">Nomor PO</span>
@@ -2575,6 +2621,14 @@ function renderReceiveForm() {
       <span class="pr-detail-label">Status</span>
       <strong class="status-text ${poStatusClass(po)}">${poStatusBadge(po).replace(` (${po.id})`, "")}</strong>
     </div>
+    <div class="pr-detail-field">
+      <span class="pr-detail-label">Tipe Penerimaan</span>
+      <strong>${RECEIVE_KIND_LABELS[receiveKind]}</strong>
+    </div>
+    <div class="pr-detail-field">
+      <span class="pr-detail-label">Basis Tersedia</span>
+      <strong>${receiveBasisOptions.map((basis) => RECEIVE_BASIS_LABELS[basis]).join(" / ")}</strong>
+    </div>
   `;
   renderReceiveLines();
 }
@@ -2597,9 +2651,11 @@ function renderReceiveLines() {
   }
 
   const items = getPoLineItems(po);
-  summary.textContent = `${items.length} item - ${RECEIVE_BASIS_LABELS[basis] || "Quantity"}`;
+  const normalizedBasis = po ? normalizeReceiveBasisForPo(po, basis) : basis;
+  const receiveKind = po ? getPoReceiveKind(po) : "goods";
+  summary.textContent = `${items.length} item - ${RECEIVE_KIND_LABELS[receiveKind]} - ${RECEIVE_BASIS_LABELS[normalizedBasis] || "Quantity"}`;
 
-  if (basis === "amount") {
+  if (normalizedBasis === "amount") {
     head.innerHTML = `
       <span>Kode</span>
       <span>Nama Barang / Jasa</span>
@@ -2609,7 +2665,7 @@ function renderReceiveLines() {
       <span>Sisa Nominal</span>
       <span>Nominal Receive</span>
     `;
-  } else if (basis === "deliverable") {
+  } else if (normalizedBasis === "deliverable") {
     head.innerHTML = `
       <span>Kode</span>
       <span>Nama Barang / Jasa</span>
@@ -2657,7 +2713,7 @@ function renderReceiveLines() {
       const completed = isPoLineFullyReceived(po, index);
       const disabled = completed ? "disabled" : "";
 
-      if (basis === "amount") {
+      if (normalizedBasis === "amount") {
         return `
           <div class="master-table-row receive-line-row">
             <span>POL-${String(index + 1).padStart(3, "0")}</span>
@@ -2682,7 +2738,7 @@ function renderReceiveLines() {
         `;
       }
 
-      if (basis === "deliverable") {
+      if (normalizedBasis === "deliverable") {
         return `
           <div class="master-table-row receive-line-row">
             <span>POL-${String(index + 1).padStart(3, "0")}</span>
@@ -3770,7 +3826,7 @@ function submitReceive(event) {
   }
 
   const poItems = getPoLineItems(po);
-  const receiveBasis = formData.get("receiveBasis") || "quantity";
+  const receiveBasis = normalizeReceiveBasisForPo(po, formData.get("receiveBasis") || "quantity");
   const receivedItems = poItems
     .map((item, index) => {
       const qtyReceived = Number(formData.get(`receiveQty-${index}`) || 0);

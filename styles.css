@@ -775,10 +775,10 @@ textarea {
 .receive-po-head,
 .receive-po-row {
   display: grid;
-  grid-template-columns: 150px minmax(180px, 1.2fr) minmax(180px, 1.2fr) 130px 150px 150px 160px 100px 120px;
+  grid-template-columns: 150px minmax(180px, 1.2fr) minmax(180px, 1.2fr) 130px 150px 150px 160px 165px 100px 120px;
   gap: 12px;
   align-items: center;
-  min-width: 1420px;
+  min-width: 1580px;
   padding: 16px 18px;
 }
 
