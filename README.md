@@ -43,6 +43,14 @@ npm start
 
 Lalu buka `http://localhost:3000`.
 
+Untuk akses dari perangkat lain di LAN, jalankan command yang sama di komputer server lalu buka alamat IP LAN yang muncul di terminal, misalnya:
+
+```text
+http://10.0.63.181:3000
+```
+
+Jika tidak bisa dibuka dari perangkat lain, pastikan perangkat berada di jaringan yang sama dan Windows Firewall mengizinkan koneksi masuk ke port `3000`.
+
 ## Struktur Repo
 
 - `index.html`: layout dashboard dan halaman modul utama

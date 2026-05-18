@@ -1,9 +1,11 @@
 const http = require("http");
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
 
 const root = __dirname;
 const port = process.env.PORT || 3000;
+const host = process.env.HOST || "0.0.0.0";
 
 const contentTypes = {
   ".html": "text/html; charset=utf-8",
@@ -36,6 +38,16 @@ const server = http.createServer((req, res) => {
   });
 });
 
-server.listen(port, () => {
-  console.log(`ERP prototype running at http://localhost:${port}`);
+function getLanAddresses() {
+  return Object.values(os.networkInterfaces())
+    .flat()
+    .filter((item) => item && item.family === "IPv4" && !item.internal)
+    .map((item) => item.address);
+}
+
+server.listen(port, host, () => {
+  console.log(`ERP prototype running locally at http://localhost:${port}`);
+  getLanAddresses().forEach((address) => {
+    console.log(`ERP prototype available on LAN at http://${address}:${port}`);
+  });
 });
