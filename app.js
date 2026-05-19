@@ -866,22 +866,32 @@ function renderLoginCompanies() {
     return;
   }
 
-  const allowedCompanies = activeCompanies().filter((company) => user.companyIds.includes(company.id));
+  const allowedCompanies = state.companies.filter((company) => user.companyIds.includes(company.id));
   if (!allowedCompanies.length) {
-    hideCompanyField("User ini belum di-assign ke Nama PT aktif.", true);
+    hideCompanyField("User ini belum di-assign ke Nama PT.", true);
     return;
   }
+
+  const activeAssignedCompanies = allowedCompanies.filter((company) => company.status === "active");
 
   select.disabled = false;
   companyField.classList.remove("app-hidden");
   select.innerHTML = allowedCompanies
-    .map((company) => `<option value="${company.id}">${company.name}</option>`)
+    .map((company) => {
+      const disabled = company.status === "active" ? "" : " disabled";
+      const statusSuffix = company.status === "active" ? "" : " (Nonaktif)";
+      return `<option value="${company.id}"${disabled}>${company.name}${statusSuffix}</option>`;
+    })
     .join("");
-  select.value = allowedCompanies.find((company) => company.isDefault)?.id || allowedCompanies[0].id;
+
+  const defaultCompany = activeAssignedCompanies.find((company) => company.isDefault) || activeAssignedCompanies[0];
+  select.value = defaultCompany?.id || "";
 
   if (message && !state.session.isLoggedIn) {
-    message.textContent = "Pilih Nama PT sesuai assignment user.";
-    message.className = "form-message";
+    message.textContent = activeAssignedCompanies.length
+      ? "Pilih Nama PT sesuai assignment user."
+      : "User ini sudah punya assignment PT, tetapi semua masih nonaktif.";
+    message.className = activeAssignedCompanies.length ? "form-message" : "form-message error";
   }
 }
 
