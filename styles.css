@@ -339,7 +339,7 @@ textarea {
 
 .workspace {
   display: grid;
-  grid-template-rows: 96px 1fr;
+  grid-template-rows: auto 1fr;
   min-width: 0;
 }
 
@@ -351,6 +351,10 @@ textarea {
   padding: 18px 32px;
   background: #ffffff;
   border-bottom: 1px solid var(--line);
+}
+
+.app-topbar-copy {
+  min-width: 220px;
 }
 
 .app-topbar-copy h2 {
@@ -371,6 +375,62 @@ textarea {
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+  flex: 1;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.topbar-account {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 4px;
+}
+
+.app-topbar .session-summary {
+  width: auto;
+  gap: 0;
+}
+
+.app-topbar .session-summary .stack-item {
+  width: 190px;
+  padding: 8px 10px;
+  gap: 4px;
+  border-radius: 14px;
+  background: #ffffff;
+}
+
+.app-topbar .session-summary .stack-item strong {
+  font-size: 0.84rem;
+  line-height: 1.2;
+}
+
+.app-topbar .session-summary .stack-item p {
+  font-size: 0.74rem;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.app-topbar .session-summary .inline-tags {
+  gap: 5px;
+  flex-wrap: nowrap;
+}
+
+.app-topbar .session-summary .tag {
+  padding: 4px 8px;
+  font-size: 0.68rem;
+  white-space: nowrap;
+}
+
+.app-topbar #logout-button {
+  width: auto;
+  min-height: 34px;
+  margin-top: 0;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 0.78rem;
 }
 
 .chip-select,
@@ -1644,6 +1704,16 @@ textarea:focus {
     grid-template-columns: 1fr;
   }
 
+  .app-topbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .app-topbar-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
   .stats,
   .grid.two-up {
     grid-template-columns: 1fr;
@@ -1681,6 +1751,22 @@ textarea:focus {
 @media (max-width: 720px) {
   .content {
     padding: 18px;
+  }
+
+  .app-topbar {
+    padding: 16px 18px;
+  }
+
+  .topbar-account {
+    width: 100%;
+  }
+
+  .app-topbar .session-summary {
+    flex: 1;
+  }
+
+  .app-topbar .session-summary .stack-item {
+    width: 100%;
   }
 
   .login-panel,
