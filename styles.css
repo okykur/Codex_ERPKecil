@@ -603,7 +603,7 @@ textarea {
   border-radius: 16px;
   overflow-x: auto;
   overflow-y: hidden;
-  background: #fff;
+  background: linear-gradient(#edf4ff 0 52px, #fff 52px);
   max-width: 100%;
   scrollbar-gutter: stable;
   overscroll-behavior-x: contain;
@@ -662,6 +662,7 @@ textarea {
   gap: 10px;
   align-items: start;
   min-width: 1396px;
+  width: 100%;
   padding: 14px 16px;
 }
 
@@ -717,7 +718,7 @@ textarea {
   border-radius: 16px;
   overflow-x: auto;
   overflow-y: hidden;
-  background: #fff;
+  background: linear-gradient(#edf4ff 0 52px, #fff 52px);
   max-width: 100%;
   scrollbar-gutter: stable;
   overscroll-behavior-x: contain;
@@ -730,6 +731,7 @@ textarea {
   gap: 10px;
   align-items: start;
   min-width: 1591px;
+  width: 100%;
   padding: 14px 16px;
 }
 
@@ -787,7 +789,7 @@ textarea {
   overflow-x: auto;
   overflow-y: hidden;
   max-width: 100%;
-  background: #fff;
+  background: linear-gradient(#edf4ff 0 54px, #fff 54px);
   scrollbar-gutter: stable;
   overscroll-behavior-x: contain;
 }
@@ -799,6 +801,7 @@ textarea {
   gap: 12px;
   align-items: center;
   min-width: 1580px;
+  width: 100%;
   padding: 16px 18px;
 }
 
@@ -1108,7 +1111,7 @@ textarea {
   border-radius: 14px;
   overflow-x: auto;
   overflow-y: hidden;
-  background: #fff;
+  background: linear-gradient(#edf4ff 0 50px, #fff 50px);
   max-width: 100%;
   scrollbar-gutter: stable;
   overscroll-behavior-x: contain;
@@ -1122,6 +1125,7 @@ textarea {
   align-items: center;
   padding: 13px 14px;
   min-width: 1400px;
+  width: 100%;
 }
 
 .approval-table-head-po,
@@ -1426,7 +1430,7 @@ textarea:focus {
   border-radius: 14px;
   overflow-x: auto;
   overflow-y: hidden;
-  background: #fff;
+  background: linear-gradient(#edf4ff 0 52px, #fff 52px);
 }
 
 .master-table-head,
@@ -1437,6 +1441,7 @@ textarea:focus {
   align-items: center;
   padding: 14px 16px;
   min-width: 100%;
+  width: 100%;
 }
 
 .company-table-head,
