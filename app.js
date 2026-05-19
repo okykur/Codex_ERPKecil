@@ -836,9 +836,53 @@ function safeCurrentCompany(user = getCurrentUser()) {
 
 function renderLoginCompanies() {
   const select = document.getElementById("login-company");
-  select.innerHTML = activeCompanies()
+  const companyField = document.getElementById("login-company-field");
+  const emailInput = document.getElementById("login-email");
+  const message = document.getElementById("login-message");
+  const email = String(emailInput?.value || "").trim().toLowerCase();
+
+  if (!select || !companyField) {
+    return;
+  }
+
+  const hideCompanyField = (messageText = "", isError = false) => {
+    select.innerHTML = "";
+    select.disabled = true;
+    companyField.classList.add("app-hidden");
+    if (message && !state.session.isLoggedIn) {
+      message.textContent = messageText;
+      message.className = isError ? "form-message error" : "form-message";
+    }
+  };
+
+  if (!email) {
+    hideCompanyField("");
+    return;
+  }
+
+  const user = state.users.find((item) => item.email.toLowerCase() === email && item.status === "active");
+  if (!user) {
+    hideCompanyField("Email belum valid atau user tidak aktif.", true);
+    return;
+  }
+
+  const allowedCompanies = activeCompanies().filter((company) => user.companyIds.includes(company.id));
+  if (!allowedCompanies.length) {
+    hideCompanyField("User ini belum di-assign ke Nama PT aktif.", true);
+    return;
+  }
+
+  select.disabled = false;
+  companyField.classList.remove("app-hidden");
+  select.innerHTML = allowedCompanies
     .map((company) => `<option value="${company.id}">${company.name}</option>`)
     .join("");
+  select.value = allowedCompanies.find((company) => company.isDefault)?.id || allowedCompanies[0].id;
+
+  if (message && !state.session.isLoggedIn) {
+    message.textContent = "Pilih Nama PT sesuai assignment user.";
+    message.className = "form-message";
+  }
 }
 
 function renderShellVisibility() {
@@ -3590,6 +3634,13 @@ function submitLogin(event) {
     return;
   }
 
+  if (!companyId) {
+    message.textContent = "Validasi email terlebih dahulu, lalu pilih Nama PT.";
+    message.className = "form-message error";
+    renderLoginCompanies();
+    return;
+  }
+
   if (!user.companyIds.includes(companyId)) {
     message.textContent = "User ini tidak punya akses ke company yang dipilih.";
     message.className = "form-message error";
@@ -4381,6 +4432,8 @@ function viewVendor(id) {
 
 function bindForms() {
   document.getElementById("login-form").addEventListener("submit", submitLogin);
+  document.getElementById("login-email").addEventListener("input", renderLoginCompanies);
+  document.getElementById("login-email").addEventListener("blur", renderLoginCompanies);
   document.getElementById("pr-form").addEventListener("submit", submitPr);
   document.getElementById("po-form").addEventListener("submit", submitPo);
   document.getElementById("receive-form").addEventListener("submit", submitReceive);

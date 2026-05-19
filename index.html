@@ -24,12 +24,12 @@
 
           <form id="login-form" class="form-grid">
             <label class="full">
-              Nama PT
-              <select id="login-company" name="companyId" required></select>
-            </label>
-            <label class="full">
               Email / Username
               <input id="login-email" name="email" type="email" placeholder="nama.user@ptkecil.co.id" required />
+            </label>
+            <label id="login-company-field" class="full app-hidden">
+              Nama PT
+              <select id="login-company" name="companyId" disabled required></select>
             </label>
             <label class="full">
               Password
