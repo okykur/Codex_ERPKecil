@@ -1755,7 +1755,7 @@ function renderPrList() {
               <span class="pr-list-cell pr-list-title">${pr.title}</span>
               <span class="pr-list-cell">
                 <span class="icon-group">
-                  <button class="mini-button primary" data-action="view-pr-detail" data-id="${pr.id}" type="button">View</button>
+                  <button class="icon-button" title="View PR" data-action="view-pr-detail" data-id="${pr.id}" type="button">&#128065;</button>
                   ${
                     !["approved", "cancelled"].includes(pr.status)
                       ? `<button class="icon-button" title="Edit PR" data-action="edit-pr" data-id="${pr.id}" type="button">&#9998;</button>`
@@ -2274,7 +2274,7 @@ function renderPoList() {
               <span class="po-list-cell po-list-title">${pr.title}</span>
               <span class="po-list-cell">
                 <span class="icon-group">
-                  <button class="mini-button primary" data-action="view-po-source" data-id="${pr.id}" type="button">View</button>
+                  <button class="icon-button" title="View PO Source" data-action="view-po-source" data-id="${pr.id}" type="button">&#128065;</button>
                   ${
                     canCreatePo
                       ? `<button class="icon-button" title="Create PO" data-action="create-po-from-pr" data-id="${pr.id}" type="button">&#10133;</button>`

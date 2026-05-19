@@ -658,10 +658,10 @@ textarea {
 .pr-list-table-head,
 .pr-list-table-row {
   display: grid;
-  grid-template-columns: 120px 125px 130px 115px 130px 150px 115px 110px minmax(220px, 1.2fr) 150px;
+  grid-template-columns: 120px 125px 130px 115px 130px 150px 115px 110px minmax(220px, 1.2fr) 126px;
   gap: 10px;
   align-items: start;
-  min-width: 1420px;
+  min-width: 1396px;
   padding: 14px 16px;
 }
 
@@ -686,6 +686,15 @@ textarea {
 
 .pr-list-cell .icon-group {
   justify-content: flex-start;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+
+.pr-list-cell .icon-button,
+.po-list-cell .icon-button {
+  width: 34px;
+  height: 34px;
 }
 
 .dashboard-relation-head,
@@ -717,10 +726,10 @@ textarea {
 .po-list-table-head,
 .po-list-table-row {
   display: grid;
-  grid-template-columns: 120px 125px 130px 115px 130px 130px 140px 155px 115px 110px minmax(210px, 1fr) 155px;
+  grid-template-columns: 120px 125px 130px 115px 130px 130px 140px 155px 115px 110px minmax(210px, 1fr) 126px;
   gap: 10px;
   align-items: start;
-  min-width: 1620px;
+  min-width: 1591px;
   padding: 14px 16px;
 }
 
@@ -749,6 +758,9 @@ textarea {
 
 .po-list-cell .icon-group {
   justify-content: flex-start;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
 }
 
 .po-list-title {
@@ -1213,6 +1225,26 @@ textarea {
   border: 1px solid var(--line);
   background: #fff;
   cursor: pointer;
+}
+
+.icon-button[data-action="view-pr-detail"],
+.icon-button[data-action="view-po-source"],
+.icon-button[data-action="view-company"],
+.icon-button[data-action="view-user"],
+.icon-button[data-action="view-vendor"] {
+  background: #edf4ff;
+  border-color: #d7e6fb;
+  color: var(--brand-deep);
+  font-weight: 800;
+}
+
+.icon-button[data-action="view-pr-detail"]:hover,
+.icon-button[data-action="view-po-source"]:hover,
+.icon-button[data-action="view-company"]:hover,
+.icon-button[data-action="view-user"]:hover,
+.icon-button[data-action="view-vendor"]:hover {
+  background: #dbeafe;
+  transform: translateY(-1px);
 }
 
 .icon-button[data-action^="edit"],
