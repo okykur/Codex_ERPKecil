@@ -1097,22 +1097,25 @@ textarea {
   overflow-x: auto;
   overflow-y: hidden;
   background: #fff;
+  max-width: 100%;
+  scrollbar-gutter: stable;
+  overscroll-behavior-x: contain;
 }
 
 .approval-table-head,
 .approval-table-row {
   display: grid;
-  grid-template-columns: 60px 170px 140px 140px 140px 160px 180px 170px 220px 150px 140px;
-  gap: 12px;
+  grid-template-columns: 48px 125px 120px 120px 125px 145px 150px 135px 190px 130px 132px;
+  gap: 10px;
   align-items: center;
-  padding: 14px 16px;
-  min-width: 1680px;
+  padding: 13px 14px;
+  min-width: 1400px;
 }
 
 .approval-table-head-po,
 .approval-table-row-po {
-  grid-template-columns: 60px 170px 170px 180px 140px 160px 180px 170px 220px 150px 140px;
-  min-width: 1760px;
+  grid-template-columns: 48px 125px 125px 165px 125px 145px 150px 135px 190px 130px 132px;
+  min-width: 1470px;
 }
 
 .approval-table-head {
@@ -1136,6 +1139,13 @@ textarea {
 
 .approval-table-row .icon-group {
   justify-content: flex-start;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+
+.approval-table-row .icon-button {
+  width: 34px;
+  height: 34px;
 }
 
 .inline-tags {
