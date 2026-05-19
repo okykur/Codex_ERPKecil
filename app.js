@@ -888,13 +888,21 @@ function renderPageHeader() {
   breadcrumb.textContent = section.dataset.breadcrumb || "ERP / Dashboard";
   title.textContent = section.dataset.title || "Dashboard";
   subtitle.textContent = section.dataset.subtitle || "";
-  periodChip.textContent = `Periode: ${period}`;
-  roleChip.textContent = getUserRoleLabels(user)[0] || "User";
+  if (periodChip) {
+    periodChip.textContent = `Periode: ${period}`;
+  }
+  if (roleChip) {
+    roleChip.textContent = getUserRoleLabels(user)[0] || "User";
+  }
 }
 
 function renderCompanySwitcher() {
   const select = document.getElementById("company-switcher");
   const user = getCurrentUser();
+
+  if (!select) {
+    return;
+  }
 
   if (!user) {
     select.innerHTML = "";
@@ -4814,10 +4822,13 @@ function bindNavigation() {
 function bindSessionControls() {
   document.getElementById("logout-button").addEventListener("click", logout);
 
-  document.getElementById("company-switcher").addEventListener("change", (event) => {
-    state.session.activeCompanyId = event.target.value;
-    refreshAll();
-  });
+  const companySwitcher = document.getElementById("company-switcher");
+  if (companySwitcher) {
+    companySwitcher.addEventListener("change", (event) => {
+      state.session.activeCompanyId = event.target.value;
+      refreshAll();
+    });
+  }
 
   document.getElementById("master-category-select").addEventListener("change", (event) => {
     ui.selectedMasterCategoryId = event.target.value;
