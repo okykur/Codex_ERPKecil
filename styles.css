@@ -496,6 +496,8 @@ textarea {
 
 .dashboard-relation-panel {
   margin-top: 20px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .grid.two-up {
@@ -602,6 +604,9 @@ textarea {
   overflow-x: auto;
   overflow-y: hidden;
   background: #fff;
+  max-width: 100%;
+  scrollbar-gutter: stable;
+  overscroll-behavior-x: contain;
 }
 
 .list-toolbar {
@@ -653,11 +658,11 @@ textarea {
 .pr-list-table-head,
 .pr-list-table-row {
   display: grid;
-  grid-template-columns: 130px 140px 150px 130px 150px 170px 130px 120px minmax(260px, 1.4fr) 140px;
-  gap: 12px;
+  grid-template-columns: 120px 125px 130px 115px 130px 150px 115px 110px minmax(220px, 1.2fr) 120px;
+  gap: 10px;
   align-items: start;
-  min-width: 1640px;
-  padding: 16px 18px;
+  min-width: 1390px;
+  padding: 14px 16px;
 }
 
 .pr-list-table-head {
@@ -685,8 +690,8 @@ textarea {
 
 .dashboard-relation-head,
 .dashboard-relation-row {
-  grid-template-columns: 150px 170px 150px 190px 190px 150px 130px 150px 150px 190px minmax(260px, 1.3fr);
-  min-width: 1880px;
+  grid-template-columns: 120px 145px 120px 145px 155px 115px 105px 125px 125px 150px minmax(210px, 1fr);
+  min-width: 1530px;
 }
 
 .pr-list-emphasis {
@@ -704,16 +709,19 @@ textarea {
   overflow-x: auto;
   overflow-y: hidden;
   background: #fff;
+  max-width: 100%;
+  scrollbar-gutter: stable;
+  overscroll-behavior-x: contain;
 }
 
 .po-list-table-head,
 .po-list-table-row {
   display: grid;
-  grid-template-columns: 130px 140px 150px 130px 150px 170px 170px 180px 130px 120px minmax(240px, 1.2fr) 140px;
-  gap: 12px;
+  grid-template-columns: 120px 125px 130px 115px 130px 130px 140px 155px 115px 110px minmax(210px, 1fr) 125px;
+  gap: 10px;
   align-items: start;
-  min-width: 1950px;
-  padding: 16px 18px;
+  min-width: 1590px;
+  padding: 14px 16px;
 }
 
 .po-list-table-head {
