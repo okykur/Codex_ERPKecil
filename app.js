@@ -903,8 +903,13 @@ function renderSessionSummary() {
 
   container.innerHTML = `
     <div class="stack-item slim">
-      <strong>${user.name}</strong>
-      <p>${user.email}</p>
+      <div class="topbar-account-main">
+        <div>
+          <strong>${user.name}</strong>
+          <p>${user.email}</p>
+        </div>
+        <button id="logout-button" class="topbar-logout-button" type="button">Logout</button>
+      </div>
       <div class="inline-tags">
         <span class="tag">${company.name}</span>
         ${getUserRoleLabels(user).map((role) => `<span class="tag">${role}</span>`).join("")}
@@ -4873,7 +4878,11 @@ function bindNavigation() {
 }
 
 function bindSessionControls() {
-  document.getElementById("logout-button").addEventListener("click", logout);
+  document.addEventListener("click", (event) => {
+    if (event.target.closest("#logout-button")) {
+      logout();
+    }
+  });
 
   const companySwitcher = document.getElementById("company-switcher");
   if (companySwitcher) {

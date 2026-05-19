@@ -393,11 +393,23 @@ textarea {
 }
 
 .app-topbar .session-summary .stack-item {
-  width: 190px;
+  width: 280px;
   padding: 8px 10px;
   gap: 4px;
   border-radius: 14px;
   background: #ffffff;
+}
+
+.topbar-account-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.topbar-account-main > div {
+  min-width: 0;
 }
 
 .app-topbar .session-summary .stack-item strong {
@@ -424,13 +436,22 @@ textarea {
   white-space: nowrap;
 }
 
-.app-topbar #logout-button {
-  width: auto;
-  min-height: 34px;
-  margin-top: 0;
-  padding: 0 12px;
+.topbar-logout-button {
+  border: 1px solid rgba(191, 63, 56, 0.26);
   border-radius: 999px;
-  font-size: 0.78rem;
+  min-height: 30px;
+  padding: 0 12px;
+  background: linear-gradient(180deg, #ffefed, #ffd9d5);
+  color: var(--danger);
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.topbar-logout-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 16px rgba(191, 63, 56, 0.12);
 }
 
 .chip-select,
