@@ -738,9 +738,22 @@ function prStatusBadge(status) {
     submitted: "Menunggu Dept Head",
     waiting_finance: "Menunggu Finance",
     approved: "Approved",
-    rejected: "Rejected"
+    rejected: "Rejected",
+    cancelled: "Cancelled"
   };
   return map[status] || status;
+}
+
+function prStatusClass(status) {
+  if (status === "approved") {
+    return "ok";
+  }
+
+  if (["rejected", "cancelled"].includes(status)) {
+    return "danger";
+  }
+
+  return "muted";
 }
 
 function poStatusBadge(po) {
@@ -779,6 +792,18 @@ function getLatestPoByPrId(prId) {
   return companyScoped(state.purchaseOrders)
     .filter((item) => item.prId === prId)
     .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))[0] || null;
+}
+
+function getPurchaseOrdersByPrId(prId) {
+  return companyScoped(state.purchaseOrders).filter((item) => item.prId === prId);
+}
+
+function hasApprovedPurchaseOrder(prId) {
+  return getPurchaseOrdersByPrId(prId).some((po) => ["issued", "partial_received", "received"].includes(po.status));
+}
+
+function canCancelPr(pr) {
+  return Boolean(pr && !["cancelled", "rejected"].includes(pr.status) && !hasApprovedPurchaseOrder(pr.id));
 }
 
 function getReceiptNumbersByPoId(poId) {
@@ -988,7 +1013,7 @@ function renderDashboardPrPoList() {
           return `
             <div class="pr-list-table-row dashboard-relation-row">
               <span class="pr-list-cell pr-list-emphasis">${pr.id}</span>
-              <span class="pr-list-cell status-text ${pr.status === "approved" ? "ok" : pr.status === "rejected" ? "danger" : "muted"}">${prStatusBadge(pr.status)}</span>
+              <span class="pr-list-cell status-text ${prStatusClass(pr.status)}">${prStatusBadge(pr.status)}</span>
               <span class="pr-list-cell pr-list-emphasis">${po?.id || "-"}</span>
               <span class="pr-list-cell pr-list-emphasis">${receiptNumbers.length ? receiptNumbers.join(", ") : "-"}</span>
               <span class="pr-list-cell status-text ${po ? poStatusClass(po) : "muted"}">${po ? poStatusBadge(po).replace(` (${po.id})`, "") : "Belum ada PO"}</span>
@@ -1724,7 +1749,7 @@ function renderPrList() {
               <span class="pr-list-cell">${pr.department}</span>
               <span class="pr-list-cell">${pr.requester}</span>
               <span class="pr-list-cell pr-list-emphasis">${currency(pr.amount)}</span>
-              <span class="pr-list-cell status-text ${pr.status === "approved" ? "ok" : pr.status === "rejected" ? "danger" : "muted"}">${prStatusBadge(pr.status)}</span>
+              <span class="pr-list-cell status-text ${prStatusClass(pr.status)}">${prStatusBadge(pr.status)}</span>
               <span class="pr-list-cell">${getMasterValueName("priority", pr.priorityId)}</span>
               <span class="pr-list-cell">${pr.category === "non_asset" ? "Non-Asset" : pr.category === "mixed" ? "Campuran" : "Asset"}</span>
               <span class="pr-list-cell pr-list-title">${pr.title}</span>
@@ -1732,8 +1757,13 @@ function renderPrList() {
                 <span class="icon-group">
                   <button class="mini-button primary" data-action="view-pr-detail" data-id="${pr.id}" type="button">View</button>
                   ${
-                    pr.status !== "approved"
+                    !["approved", "cancelled"].includes(pr.status)
                       ? `<button class="icon-button" title="Edit PR" data-action="edit-pr" data-id="${pr.id}" type="button">&#9998;</button>`
+                      : ""
+                  }
+                  ${
+                    canCancelPr(pr)
+                      ? `<button class="icon-button" title="Cancel PR" data-action="cancel-pr" data-id="${pr.id}" type="button">&#10005;</button>`
                       : ""
                   }
                 </span>
@@ -1794,7 +1824,7 @@ function renderPrComposer() {
 
 function beginEditPr(id) {
   const pr = getPrById(id);
-  if (!pr || pr.companyId !== state.session.activeCompanyId || pr.status === "approved") {
+  if (!pr || pr.companyId !== state.session.activeCompanyId || ["approved", "cancelled"].includes(pr.status)) {
     return;
   }
 
@@ -1845,7 +1875,7 @@ function renderPrDetailPanel() {
       </div>
       <div class="pr-detail-field">
         <span class="pr-detail-label">Status</span>
-        <strong class="status-text ${pr.status === "approved" ? "ok" : pr.status === "rejected" ? "danger" : "muted"}">${prStatusBadge(pr.status)}</strong>
+        <strong class="status-text ${prStatusClass(pr.status)}">${prStatusBadge(pr.status)}</strong>
       </div>
       <div class="pr-detail-field">
         <span class="pr-detail-label">Prioritas</span>
@@ -1966,7 +1996,7 @@ function renderApprovalList() {
                   <span>${new Intl.DateTimeFormat("id-ID", { dateStyle: "medium" }).format(new Date(pr.createdAt))}</span>
                   <span>${pr.requester}</span>
                   <span>${currency(pr.amount)}</span>
-                  <span class="status-text ${pr.status === "approved" ? "ok" : pr.status === "rejected" ? "danger" : "muted"}">${prStatusBadge(pr.status)}</span>
+                  <span class="status-text ${prStatusClass(pr.status)}">${prStatusBadge(pr.status)}</span>
                   <span>${entry.name || "-"}</span>
                   <span>${entry.title || "-"}</span>
                   <span>${entry.email || "-"}</span>
@@ -2238,7 +2268,7 @@ function renderPoList() {
               <span class="po-list-cell po-list-emphasis">${currency(financialSource.amount)}</span>
               <span class="po-list-cell">${currency(financialSource.vatAmount || 0)}</span>
               <span class="po-list-cell po-list-emphasis">${currency(financialSource.totalAmount || financialSource.amount)}</span>
-              <span class="po-list-cell status-text ${po ? poStatusClass(po) : pr.status === "approved" ? "ok" : pr.status === "rejected" ? "danger" : "muted"}">${statusLabel}</span>
+              <span class="po-list-cell status-text ${po ? poStatusClass(po) : prStatusClass(pr.status)}">${statusLabel}</span>
               <span class="po-list-cell">${getMasterValueName("priority", pr.priorityId)}</span>
               <span class="po-list-cell">${pr.category === "non_asset" ? "Non-Asset" : pr.category === "mixed" ? "Campuran" : "Asset"}</span>
               <span class="po-list-cell po-list-title">${pr.title}</span>
@@ -2297,7 +2327,7 @@ function renderPoDetailPanel() {
     <div class="pr-detail-grid">
       <div class="pr-detail-field">
         <span class="pr-detail-label">Status</span>
-        <strong class="status-text ${linkedPo ? poStatusClass(linkedPo) : pr.status === "approved" ? "ok" : pr.status === "rejected" ? "danger" : "muted"}">${linkedPo ? poStatusBadge(linkedPo) : prStatusBadge(pr.status)}</strong>
+        <strong class="status-text ${linkedPo ? poStatusClass(linkedPo) : prStatusClass(pr.status)}">${linkedPo ? poStatusBadge(linkedPo) : prStatusBadge(pr.status)}</strong>
       </div>
       <div class="pr-detail-field">
         <span class="pr-detail-label">Departemen</span>
@@ -3650,7 +3680,11 @@ function submitPr(event) {
 
   const existingPr = ui.editingPrId ? getPrById(ui.editingPrId) : null;
 
-  if (existingPr && existingPr.companyId === state.session.activeCompanyId && existingPr.status !== "approved") {
+  if (
+    existingPr &&
+    existingPr.companyId === state.session.activeCompanyId &&
+    !["approved", "cancelled"].includes(existingPr.status)
+  ) {
     Object.assign(existingPr, payload, {
       companyCode: getCompanyCodeSnapshot(existingPr.companyId),
       status: "submitted",
@@ -3720,6 +3754,35 @@ function rejectPr(id) {
   pr.status = "rejected";
   pr.approvalStage = "done";
   pr.history.push("Rejected");
+  refreshAll();
+}
+
+function cancelPr(id) {
+  const pr = getPrById(id);
+  if (!pr || pr.companyId !== state.session.activeCompanyId || !canCancelPr(pr)) {
+    return;
+  }
+
+  const cancelledAt = new Date().toISOString();
+  pr.status = "cancelled";
+  pr.approvalStage = "done";
+  pr.cancelledAt = cancelledAt;
+  pr.history = [...(pr.history || []), "PR cancelled sebelum PO approved"];
+
+  getPurchaseOrdersByPrId(pr.id)
+    .filter((po) => !["issued", "partial_received", "received", "rejected", "cancelled"].includes(po.status))
+    .forEach((po) => {
+      po.status = "cancelled";
+      po.cancelledAt = cancelledAt;
+      po.history = [...(po.history || []), "PO ikut cancelled karena PR dibatalkan sebelum approved"];
+    });
+
+  if (ui.editingPrId === pr.id) {
+    ui.editingPrId = "";
+    ui.prFormOpen = false;
+  }
+
+  ui.selectedPrDetailId = pr.id;
   refreshAll();
 }
 
@@ -4532,6 +4595,10 @@ function bindActionButtons() {
 
   if (action === "edit-pr") {
     beginEditPr(id);
+  }
+
+  if (action === "cancel-pr") {
+    cancelPr(id);
   }
 
   if (action === "edit-pr-item") {

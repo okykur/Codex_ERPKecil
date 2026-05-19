@@ -658,10 +658,10 @@ textarea {
 .pr-list-table-head,
 .pr-list-table-row {
   display: grid;
-  grid-template-columns: 120px 125px 130px 115px 130px 150px 115px 110px minmax(220px, 1.2fr) 120px;
+  grid-template-columns: 120px 125px 130px 115px 130px 150px 115px 110px minmax(220px, 1.2fr) 150px;
   gap: 10px;
   align-items: start;
-  min-width: 1390px;
+  min-width: 1420px;
   padding: 14px 16px;
 }
 
@@ -717,10 +717,10 @@ textarea {
 .po-list-table-head,
 .po-list-table-row {
   display: grid;
-  grid-template-columns: 120px 125px 130px 115px 130px 130px 140px 155px 115px 110px minmax(210px, 1fr) 125px;
+  grid-template-columns: 120px 125px 130px 115px 130px 130px 140px 155px 115px 110px minmax(210px, 1fr) 155px;
   gap: 10px;
   align-items: start;
-  min-width: 1590px;
+  min-width: 1620px;
   padding: 14px 16px;
 }
 
@@ -1231,14 +1231,16 @@ textarea {
   transform: translateY(-1px);
 }
 
-.icon-button[data-action="cancel-po"] {
+.icon-button[data-action="cancel-po"],
+.icon-button[data-action="cancel-pr"] {
   background: rgba(191, 63, 56, 0.08);
   border-color: rgba(191, 63, 56, 0.22);
   color: var(--danger);
   font-weight: 900;
 }
 
-.icon-button[data-action="cancel-po"]:hover {
+.icon-button[data-action="cancel-po"]:hover,
+.icon-button[data-action="cancel-pr"]:hover {
   background: rgba(191, 63, 56, 0.16);
   transform: translateY(-1px);
 }
