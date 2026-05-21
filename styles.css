@@ -27,7 +27,8 @@ body {
   font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
   color: var(--text);
   background: var(--bg);
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
 }
 
 .app-hidden {
@@ -181,7 +182,8 @@ textarea {
 .shell {
   display: grid;
   grid-template-columns: 280px 1fr;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
 }
 
 .sidebar {
@@ -191,10 +193,15 @@ textarea {
   border-right: 1px solid var(--line);
   display: flex;
   flex-direction: column;
-  position: relative;
+  position: sticky;
+  top: 0;
   z-index: 1;
-  overflow: hidden;
+  height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto;
   min-width: 0;
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
 }
 
 .brand-card,
@@ -341,6 +348,9 @@ textarea {
   display: grid;
   grid-template-rows: auto 1fr;
   min-width: 0;
+  min-height: 0;
+  height: 100vh;
+  overflow: hidden;
 }
 
 .app-topbar {
@@ -483,6 +493,9 @@ textarea {
 .content {
   padding: 16px 26px 28px;
   min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .section {
@@ -1723,6 +1736,18 @@ textarea:focus {
 @media (max-width: 1080px) {
   .shell {
     grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+
+  .sidebar {
+    position: relative;
+    height: auto;
+    max-height: 34vh;
+  }
+
+  .workspace {
+    height: auto;
+    min-height: 0;
   }
 
   .app-topbar {
