@@ -53,4 +53,17 @@ export class AuthService {
       companies: user.companies
     };
   }
+
+  async companiesForEmail(email: string) {
+    const user = await this.users.findOne({
+      where: { email: email.toLowerCase(), status: "active" },
+      relations: { companies: true }
+    });
+
+    if (!user) {
+      return [];
+    }
+
+    return user.companies.filter((company) => company.status === "active");
+  }
 }

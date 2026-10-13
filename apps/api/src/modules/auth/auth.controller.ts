@@ -1,4 +1,4 @@
-import { Body, Controller, Post } from "@nestjs/common";
+import { Body, Controller, Get, Post, Query } from "@nestjs/common";
 import { IsEmail, IsString } from "class-validator";
 import { AuthService } from "./auth.service";
 
@@ -16,6 +16,11 @@ class LoginDto {
 @Controller("auth")
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+
+  @Get("companies")
+  companies(@Query("email") email: string) {
+    return this.authService.companiesForEmail(email);
+  }
 
   @Post("login")
   login(@Body() body: LoginDto) {

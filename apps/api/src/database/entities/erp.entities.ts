@@ -298,6 +298,12 @@ export class PurchaseOrder {
 
   @Column({ name: "total_amount", type: "numeric", precision: 18, scale: 2, default: 0 })
   totalAmount!: string;
+
+  @OneToMany(() => PurchaseOrderItem, (item) => item.purchaseOrder)
+  items!: PurchaseOrderItem[];
+
+  @OneToMany(() => RfqQuotation, (quotation) => quotation.purchaseOrder)
+  quotations!: RfqQuotation[];
 }
 
 @Entity("purchase_order_items")
@@ -305,7 +311,7 @@ export class PurchaseOrderItem {
   @PrimaryGeneratedColumn("uuid")
   id!: string;
 
-  @ManyToOne(() => PurchaseOrder, { nullable: false })
+  @ManyToOne(() => PurchaseOrder, (purchaseOrder) => purchaseOrder.items, { nullable: false })
   @JoinColumn({ name: "purchase_order_id" })
   purchaseOrder!: PurchaseOrder;
 
@@ -330,7 +336,7 @@ export class RfqQuotation {
   @PrimaryGeneratedColumn("uuid")
   id!: string;
 
-  @ManyToOne(() => PurchaseOrder, { nullable: false })
+  @ManyToOne(() => PurchaseOrder, (purchaseOrder) => purchaseOrder.quotations, { nullable: false })
   @JoinColumn({ name: "purchase_order_id" })
   purchaseOrder!: PurchaseOrder;
 
@@ -368,6 +374,9 @@ export class Receive {
 
   @Column({ name: "handover_document", nullable: true })
   handoverDocument?: string;
+
+  @OneToMany(() => ReceiveLine, (line) => line.receive)
+  lines!: ReceiveLine[];
 }
 
 @Entity("receive_lines")
@@ -375,7 +384,7 @@ export class ReceiveLine {
   @PrimaryGeneratedColumn("uuid")
   id!: string;
 
-  @ManyToOne(() => Receive, { nullable: false })
+  @ManyToOne(() => Receive, (receive) => receive.lines, { nullable: false })
   @JoinColumn({ name: "receive_id" })
   receive!: Receive;
 
