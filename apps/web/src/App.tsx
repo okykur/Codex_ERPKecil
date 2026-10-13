@@ -641,11 +641,13 @@ function CompanyMasterPage({
   const empty = { code: "", name: "", type: "Operasional", status: "active", isDefault: false, address: "" };
   const [editing, setEditing] = useState<Company | null>(null);
   const [form, setForm] = useState(empty);
+  const [showForm, setShowForm] = useState(false);
 
   async function submit() {
     await saveCompany(form, editing?.id);
     setEditing(null);
     setForm(empty);
+    setShowForm(false);
     await onChanged();
   }
 
@@ -656,8 +658,26 @@ function CompanyMasterPage({
           <h2>Master Company</h2>
           <p>CRUD data usaha untuk scope login dan transaksi.</p>
         </div>
+        {isAdmin ? (
+          <button
+            className="primary-button"
+            onClick={() => {
+              setEditing(null);
+              setForm(empty);
+              setShowForm(true);
+            }}
+            type="button"
+          >
+            + Tambah Company
+          </button>
+        ) : null}
       </div>
-      {isAdmin ? (
+      {showForm ? (
+        <MasterModal
+          onClose={() => setShowForm(false)}
+          onSave={submit}
+          title={editing ? "Edit Company" : "Tambah Company"}
+        >
         <div className="master-form">
           <div className="form-grid three">
             <label>
@@ -686,10 +706,8 @@ function CompanyMasterPage({
               </select>
             </label>
           </div>
-          <button className="primary-button" onClick={submit} type="button">
-            {editing ? "Update Company" : "+ Tambah Company"}
-          </button>
         </div>
+        </MasterModal>
       ) : null}
       <DataTable columns="0.8fr 1.2fr 1fr 1.6fr 0.8fr 120px">
         <TableHead cells={["Kode", "Nama", "Tipe", "Alamat", "Status", "Aksi"]} />
@@ -713,6 +731,7 @@ function CompanyMasterPage({
                   isDefault: company.isDefault,
                   address: company.address || ""
                 });
+                setShowForm(true);
               }}
             />
           </div>
@@ -738,11 +757,13 @@ function UserMasterPage({
   const empty = { name: "", email: "", password: "", status: "active", companyIds: [] as string[], roleIds: [] as string[] };
   const [editing, setEditing] = useState<User | null>(null);
   const [form, setForm] = useState(empty);
+  const [showForm, setShowForm] = useState(false);
 
   async function submit() {
     await saveUser(form, editing?.id);
     setEditing(null);
     setForm(empty);
+    setShowForm(false);
     await onChanged();
   }
 
@@ -753,8 +774,26 @@ function UserMasterPage({
           <h2>User Management</h2>
           <p>Maintain login, assignment Nama PT, dan roles user.</p>
         </div>
+        {isAdmin ? (
+          <button
+            className="primary-button"
+            onClick={() => {
+              setEditing(null);
+              setForm(empty);
+              setShowForm(true);
+            }}
+            type="button"
+          >
+            + Tambah User
+          </button>
+        ) : null}
       </div>
-      {isAdmin ? (
+      {showForm ? (
+        <MasterModal
+          onClose={() => setShowForm(false)}
+          onSave={submit}
+          title={editing ? "Edit User" : "Tambah User"}
+        >
         <div className="master-form">
           <div className="form-grid three">
             <label>
@@ -799,10 +838,8 @@ function UserMasterPage({
               </select>
             </label>
           </div>
-          <button className="primary-button" onClick={submit} type="button">
-            {editing ? "Update User" : "+ Tambah User"}
-          </button>
         </div>
+        </MasterModal>
       ) : null}
       <DataTable columns="1fr 1.4fr 1.6fr 1.2fr 0.8fr 120px">
         <TableHead cells={["Nama", "Email", "Company", "Role", "Status", "Aksi"]} />
@@ -826,6 +863,7 @@ function UserMasterPage({
                   companyIds: user.companies.map((company) => company.id),
                   roleIds: user.roles.map((role) => role.id)
                 });
+                setShowForm(true);
               }}
             />
           </div>
@@ -840,11 +878,13 @@ function RoleMasterPage({ roles, isAdmin, onChanged }: { roles: Role[]; isAdmin:
   const empty = { id: "", name: "", modules: [] as string[], status: "active" };
   const [editing, setEditing] = useState<Role | null>(null);
   const [form, setForm] = useState(empty);
+  const [showForm, setShowForm] = useState(false);
 
   async function submit() {
     await saveRole(form, editing?.id);
     setEditing(null);
     setForm(empty);
+    setShowForm(false);
     await onChanged();
   }
 
@@ -855,8 +895,26 @@ function RoleMasterPage({ roles, isAdmin, onChanged }: { roles: Role[]; isAdmin:
           <h2>Roles Management</h2>
           <p>Atur roles dapat menu apa saja. Hanya Administrator yang bisa CRUD.</p>
         </div>
+        {isAdmin ? (
+          <button
+            className="primary-button"
+            onClick={() => {
+              setEditing(null);
+              setForm(empty);
+              setShowForm(true);
+            }}
+            type="button"
+          >
+            + Tambah Role
+          </button>
+        ) : null}
       </div>
-      {isAdmin ? (
+      {showForm ? (
+        <MasterModal
+          onClose={() => setShowForm(false)}
+          onSave={submit}
+          title={editing ? "Edit Role" : "Tambah Role"}
+        >
         <div className="master-form">
           <div className="form-grid three">
             <label>
@@ -892,10 +950,8 @@ function RoleMasterPage({ roles, isAdmin, onChanged }: { roles: Role[]; isAdmin:
               </label>
             ))}
           </div>
-          <button className="primary-button" onClick={submit} type="button">
-            {editing ? "Update Role" : "+ Tambah Role"}
-          </button>
         </div>
+        </MasterModal>
       ) : null}
       <DataTable columns="1fr 1.2fr 2fr 0.8fr 120px">
         <TableHead cells={["Kode", "Role", "Menu", "Status", "Aksi"]} />
@@ -911,6 +967,7 @@ function RoleMasterPage({ roles, isAdmin, onChanged }: { roles: Role[]; isAdmin:
               onEdit={() => {
                 setEditing(role);
                 setForm({ id: role.id, name: role.name, modules: role.modules, status: role.status });
+                setShowForm(true);
               }}
             />
           </div>
@@ -944,6 +1001,7 @@ function VendorMasterPage({
   };
   const [editing, setEditing] = useState<Vendor | null>(null);
   const [form, setForm] = useState(empty);
+  const [showForm, setShowForm] = useState(false);
 
   useEffect(() => {
     if (!form.companyId && companies[0]?.id) {
@@ -955,6 +1013,7 @@ function VendorMasterPage({
     await saveVendor(form, editing?.id);
     setEditing(null);
     setForm({ ...empty, companyId: companies[0]?.id || "" });
+    setShowForm(false);
     await onChanged();
   }
 
@@ -965,8 +1024,26 @@ function VendorMasterPage({
           <h2>Master Vendor</h2>
           <p>CRUD vendor per company, termasuk alamat detail dan kontak.</p>
         </div>
+        {isAdmin ? (
+          <button
+            className="primary-button"
+            onClick={() => {
+              setEditing(null);
+              setForm({ ...empty, companyId: companies[0]?.id || "" });
+              setShowForm(true);
+            }}
+            type="button"
+          >
+            + Tambah Vendor
+          </button>
+        ) : null}
       </div>
-      {isAdmin ? (
+      {showForm ? (
+        <MasterModal
+          onClose={() => setShowForm(false)}
+          onSave={submit}
+          title={editing ? "Edit Vendor" : "Tambah Vendor"}
+        >
         <div className="master-form">
           <div className="form-grid three">
             <label>
@@ -1015,10 +1092,8 @@ function VendorMasterPage({
               </select>
             </label>
           </div>
-          <button className="primary-button" onClick={submit} type="button">
-            {editing ? "Update Vendor" : "+ Tambah Vendor"}
-          </button>
         </div>
+        </MasterModal>
       ) : null}
       <DataTable columns="0.8fr 1.3fr 1fr 1fr 1.5fr 0.8fr 120px">
         <TableHead cells={["Kode", "Nama", "Company", "Tipe", "Alamat", "Status", "Aksi"]} />
@@ -1046,6 +1121,7 @@ function VendorMasterPage({
                   address: vendor.address || "",
                   note: ""
                 });
+                setShowForm(true);
               }}
             />
           </div>
@@ -1226,6 +1302,43 @@ function TableHead({ cells }: { cells: string[] }) {
 
 function StatusBadge({ status }: { status: string }) {
   return <span className={`status ${status}`}>{status.replaceAll("_", " ")}</span>;
+}
+
+function MasterModal({
+  title,
+  children,
+  onClose,
+  onSave
+}: {
+  title: string;
+  children: React.ReactNode;
+  onClose: () => void;
+  onSave: () => Promise<void>;
+}) {
+  return (
+    <div className="modal-backdrop">
+      <section className="modal-card">
+        <div className="panel-header">
+          <div>
+            <h2>{title}</h2>
+            <p>Lengkapi field, lalu klik Save untuk menyimpan.</p>
+          </div>
+          <button className="icon-button danger" onClick={onClose} title="Tutup" type="button">
+            ×
+          </button>
+        </div>
+        <div className="modal-body">{children}</div>
+        <div className="modal-footer">
+          <button className="secondary-button" onClick={onClose} type="button">
+            Cancel
+          </button>
+          <button className="primary-button" onClick={() => void onSave()} type="button">
+            Save
+          </button>
+        </div>
+      </section>
+    </div>
+  );
 }
 
 function MasterActions({
