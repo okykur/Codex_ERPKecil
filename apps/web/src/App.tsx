@@ -387,6 +387,14 @@ function PurchaseOrderPage({
   }
 
   async function submit() {
+    if (!selectedPrId) {
+      window.alert("Belum ada Purchase Request berstatus approved yang bisa dibuat PO.");
+      return;
+    }
+    if (!vendorId) {
+      window.alert("Vendor wajib dipilih sebelum membuat PO.");
+      return;
+    }
     await createPurchaseOrder({
       purchaseRequestId: selectedPrId,
       vendorId,
@@ -406,7 +414,7 @@ function PurchaseOrderPage({
             <h2>List Purchase Order</h2>
             <p>Data PO dari PR approved, termasuk PO rejected/cancelled.</p>
           </div>
-          <button className="primary-button" disabled={!approvedPrs.length} onClick={openCreateForm} type="button">
+          <button className="primary-button" onClick={openCreateForm} type="button">
             + Buat PO
           </button>
         </div>
@@ -437,6 +445,9 @@ function PurchaseOrderPage({
         <MasterModal onClose={() => setShowForm(false)} onSave={submit} title="Buat Purchase Order">
         <div className="master-form">
           <p className="muted">Pilih nomor PR approved, vendor, PPN, attachment penawaran, dan approval PO.</p>
+          {!approvedPrs.length ? (
+            <div className="alert">Belum ada Purchase Request approved. Approve PR dulu di menu Persetujuan.</div>
+          ) : null}
         <div className="form-grid three">
           <label>
             Purchase Request Number
