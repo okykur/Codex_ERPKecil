@@ -6,5 +6,10 @@ dist/
 build/
 .env
 .env.*
+!.env.example
+*.log
+coverage/
+.vite/
+.turbo/
 .DS_Store
 Thumbs.db

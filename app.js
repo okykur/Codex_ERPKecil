@@ -191,7 +191,7 @@ const seedState = {
       id: "USR-001",
       name: "Administrator ERP",
       email: "administrator@ptkecil.co.id",
-      password: "Admin#2026",
+      password: "DISABLED_SET_PASSWORD",
       roles: ["administrator"],
       companyIds: ["CMP-001", "CMP-002", "CMP-003"],
       status: "active"
@@ -200,7 +200,7 @@ const seedState = {
       id: "USR-002",
       name: "Mira Andini",
       email: "maker.ho@ptkecil.co.id",
-      password: "Maker#2026",
+      password: "DISABLED_SET_PASSWORD",
       roles: ["user_maker"],
       companyIds: ["CMP-001"],
       status: "active"
@@ -209,7 +209,7 @@ const seedState = {
       id: "USR-003",
       name: "Rudi Hartono",
       email: "procurement@ptkecil.co.id",
-      password: "Proc#2026",
+      password: "DISABLED_SET_PASSWORD",
       roles: ["procurement"],
       companyIds: ["CMP-001", "CMP-002"],
       status: "active"

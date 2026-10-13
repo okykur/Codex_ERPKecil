@@ -1,0 +1,17 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: erplittle-postgres
+    environment:
+      POSTGRES_DB: erplittle
+      POSTGRES_USER: erp_app
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in your local environment}
+    ports:
+      - "5432:5432"
+    volumes:
+      - erplittle_pgdata:/var/lib/postgresql/data
+      - ./database/init/001_schema.sql:/docker-entrypoint-initdb.d/001_schema.sql:ro
+      - ./database/init/002_seed.sql:/docker-entrypoint-initdb.d/002_seed.sql:ro
+
+volumes:
+  erplittle_pgdata:

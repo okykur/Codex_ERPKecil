@@ -1,6 +1,8 @@
 # Codex ERP Kecil
 
-Prototype ERP PT kecil untuk alur `Purchase Request -> Approval -> Purchase Order -> Receive -> Posting COA`.
+ERP PT kecil untuk alur `Purchase Request -> Approval -> Purchase Order -> Receive -> Posting COA`.
+
+> Status terbaru: repository mulai dimigrasikan dari prototype `localStorage` menjadi monorepo `React TypeScript + NestJS TypeScript + PostgreSQL`.
 
 Fokus solusi ini:
 - Purchase Request dengan detail kebutuhan dan kategori `asset` / `non-asset`
@@ -37,8 +39,25 @@ Repo ini dirancang agar semua modul dan menu bisa dipakai untuk lebih dari satu 
 
 ## Menjalankan Aplikasi
 
+### Arsitektur Baru
+
 ```bash
-npm start
+npm install
+docker compose up -d postgres
+npm run dev:api
+npm run dev:web
+```
+
+Frontend React berjalan di `http://localhost:3002`.
+Backend NestJS berjalan di `http://localhost:8001/api`.
+Database PostgreSQL menggunakan nama `erplittle`.
+
+Lihat detail migrasi di [React + NestJS + PostgreSQL](./docs/architecture/react-nest-postgres.md).
+
+### Prototype Lama
+
+```bash
+npm run legacy:start
 ```
 
 Lalu buka `http://localhost:3000`.
@@ -62,9 +81,11 @@ Jika tidak bisa dibuka dari perangkat lain, pastikan perangkat berada di jaringa
 
 ## Catatan MVP
 
-- Data masih disimpan di `localStorage`
-- Belum ada database, login, atau backend API
-- Belum ada implementasi nyata untuk `multi-company login scope`, tetapi requirement-nya sudah menjadi bagian desain
+- Prototype lama masih menyimpan data di `localStorage`
+- Arsitektur baru memakai PostgreSQL `erplittle`
+- Backend API awal sudah menggunakan NestJS + TypeORM
+- Frontend baru sudah menggunakan React + TypeScript + Vite
+- Endpoint workflow transaksi masih akan dimigrasikan bertahap dari prototype lama
 - Approval PR tambahan saat nominal `> Rp 50.000.000`
 - Approval PO tambahan saat nominal `> Rp 75.000.000`
 - Receive memicu jurnal otomatis ke akun transaksi versus `2105 - GR/IR Clearing`
