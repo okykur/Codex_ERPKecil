@@ -28,6 +28,7 @@ Gunakan `.env.example` sebagai dasar:
 
 ```env
 API_PORT=8001
+API_HOST=127.0.0.1
 WEB_PORT=3002
 DATABASE_URL=postgresql://erp_app:<DB_PASSWORD>@127.0.0.1:5432/erplittle
 JWT_SECRET=<LONG_RANDOM_JWT_SECRET>
