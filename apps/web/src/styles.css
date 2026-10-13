@@ -300,6 +300,10 @@ textarea {
   font: inherit;
 }
 
+select[multiple] {
+  min-height: 118px;
+}
+
 input:focus,
 select:focus,
 textarea:focus {
@@ -419,6 +423,36 @@ textarea:focus {
   display: grid;
   gap: 12px;
   margin-top: 16px;
+}
+
+.master-form {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 18px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--panel-strong);
+}
+
+.module-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.check-row input {
+  width: auto;
 }
 
 .compact-header {

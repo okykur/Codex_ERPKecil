@@ -153,8 +153,28 @@ export async function fetchCompanies() {
   return data;
 }
 
+export async function saveCompany(payload: unknown, id?: string) {
+  const { data } = id ? await api.patch<Company>(`/companies/${id}`, payload) : await api.post<Company>("/companies", payload);
+  return data;
+}
+
+export async function deleteCompany(id: string) {
+  const { data } = await api.delete<Company>(`/companies/${id}`);
+  return data;
+}
+
 export async function fetchUsers() {
   const { data } = await api.get<User[]>("/users");
+  return data;
+}
+
+export async function saveUser(payload: unknown, id?: string) {
+  const { data } = id ? await api.patch<User>(`/users/${id}`, payload) : await api.post<User>("/users", payload);
+  return data;
+}
+
+export async function deleteUser(id: string) {
+  const { data } = await api.delete<User>(`/users/${id}`);
   return data;
 }
 
@@ -163,8 +183,28 @@ export async function fetchRoles() {
   return data;
 }
 
+export async function saveRole(payload: unknown, id?: string) {
+  const { data } = id ? await api.patch<Role>(`/roles/${id}`, payload) : await api.post<Role>("/roles", payload);
+  return data;
+}
+
+export async function deleteRole(id: string) {
+  const { data } = await api.delete<Role>(`/roles/${id}`);
+  return data;
+}
+
 export async function fetchVendors(companyId?: string) {
   const { data } = await api.get<Vendor[]>("/vendors", { params: { companyId } });
+  return data;
+}
+
+export async function saveVendor(payload: unknown, id?: string) {
+  const { data } = id ? await api.patch<Vendor>(`/vendors/${id}`, payload) : await api.post<Vendor>("/vendors", payload);
+  return data;
+}
+
+export async function deleteVendor(id: string) {
+  const { data } = await api.delete<Vendor>(`/vendors/${id}`);
   return data;
 }
 

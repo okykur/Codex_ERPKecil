@@ -17,6 +17,10 @@ import {
   cancelPurchaseRequest,
   createPurchaseOrder,
   createReceive,
+  deleteCompany,
+  deleteRole,
+  deleteUser,
+  deleteVendor,
   fetchApprovals,
   fetchCompanies,
   fetchLoginCompanies,
@@ -30,7 +34,11 @@ import {
   login,
   logout,
   resendApproval,
+  saveCompany,
   savePurchaseRequest,
+  saveRole,
+  saveUser,
+  saveVendor,
   storedSession
 } from "./lib/api";
 import { DashboardPage } from "./pages/DashboardPage";
@@ -55,6 +63,7 @@ export function App() {
   const [notice, setNotice] = useState("");
 
   const allowedMenu = useMemo(() => filterMenu(session?.user.roles || []), [session]);
+  const isAdmin = Boolean(session?.user.roles.some((role) => role.id === "administrator"));
 
   async function loadData() {
     if (!session) {
@@ -153,61 +162,30 @@ export function App() {
         <ReceivePage onSaved={() => refreshWithNotice("Receive tersimpan.")} purchaseOrders={receivableOrders} receives={receives} />
       ) : null}
       {activePage === "company" ? (
-        <SimpleListPage
-          columns={[
-            { header: "Kode", render: (row) => row.code },
-            { header: "Nama Company", render: (row) => row.name },
-            { header: "Tipe", render: (row) => row.type },
-            { header: "Alamat", render: (row) => row.address || "-" },
-            { header: "Status", render: (row) => <StatusBadge status={row.status} /> }
-          ]}
-          description="Data usaha untuk scope login dan transaksi."
-          getKey={(row) => row.id}
-          rows={companies}
-          title="Master Company"
+        <CompanyMasterPage
+          companies={companies}
+          isAdmin={isAdmin}
+          onChanged={() => refreshWithNotice("Data company diperbarui.")}
         />
       ) : null}
       {activePage === "users" ? (
-        <SimpleListPage
-          columns={[
-            { header: "Nama", render: (row) => row.name },
-            { header: "Email", render: (row) => row.email },
-            { header: "Company", render: (row) => row.companies.map((company) => company.name).join(", ") },
-            { header: "Role", render: (row) => row.roles.map((role) => role.name).join(", ") },
-            { header: "Status", render: (row) => <StatusBadge status={row.status} /> }
-          ]}
-          description="Maintain user login, assignment company, dan role."
-          getKey={(row) => row.id}
-          rows={users}
-          title="User Management"
+        <UserMasterPage
+          companies={companies}
+          isAdmin={isAdmin}
+          onChanged={() => refreshWithNotice("Data user diperbarui.")}
+          roles={roles}
+          users={users}
         />
       ) : null}
       {activePage === "roles" ? (
-        <SimpleListPage
-          columns={[
-            { header: "Role", render: (row) => row.name },
-            { header: "Menu", render: (row) => row.modules.join(", ") },
-            { header: "Status", render: (row) => <StatusBadge status={row.status} /> }
-          ]}
-          description="Roles menentukan menu yang tampil setelah login."
-          getKey={(row) => row.id}
-          rows={roles}
-          title="Roles Management"
-        />
+        <RoleMasterPage isAdmin={isAdmin} onChanged={() => refreshWithNotice("Data role diperbarui.")} roles={roles} />
       ) : null}
       {activePage === "vendors" ? (
-        <SimpleListPage
-          columns={[
-            { header: "Kode", render: (row) => row.code },
-            { header: "Nama Vendor", render: (row) => row.name },
-            { header: "Tipe", render: (row) => row.type },
-            { header: "Alamat", render: (row) => row.address || "-" },
-            { header: "Status", render: (row) => <StatusBadge status={row.status} /> }
-          ]}
-          description="Vendor per company dengan alamat detail."
-          getKey={(row) => row.id}
-          rows={vendors}
-          title="Master Vendor"
+        <VendorMasterPage
+          companies={companies}
+          isAdmin={isAdmin}
+          onChanged={() => refreshWithNotice("Data vendor diperbarui.")}
+          vendors={vendors}
         />
       ) : null}
       {!allowedMenu.some((item) => item.id === activePage) ? <div className="panel">Menu tidak tersedia untuk role ini.</div> : null}
@@ -651,6 +629,432 @@ function ReceivePage({
   );
 }
 
+function CompanyMasterPage({
+  companies,
+  isAdmin,
+  onChanged
+}: {
+  companies: Company[];
+  isAdmin: boolean;
+  onChanged: () => Promise<void>;
+}) {
+  const empty = { code: "", name: "", type: "Operasional", status: "active", isDefault: false, address: "" };
+  const [editing, setEditing] = useState<Company | null>(null);
+  const [form, setForm] = useState(empty);
+
+  async function submit() {
+    await saveCompany(form, editing?.id);
+    setEditing(null);
+    setForm(empty);
+    await onChanged();
+  }
+
+  return (
+    <section className="panel">
+      <div className="panel-header">
+        <div>
+          <h2>Master Company</h2>
+          <p>CRUD data usaha untuk scope login dan transaksi.</p>
+        </div>
+      </div>
+      {isAdmin ? (
+        <div className="master-form">
+          <div className="form-grid three">
+            <label>
+              Kode Company
+              <input onChange={(event) => setForm({ ...form, code: event.target.value })} value={form.code} />
+            </label>
+            <label>
+              Nama Company
+              <input onChange={(event) => setForm({ ...form, name: event.target.value })} value={form.name} />
+            </label>
+            <label>
+              Tipe
+              <input onChange={(event) => setForm({ ...form, type: event.target.value })} value={form.type} />
+            </label>
+          </div>
+          <div className="form-grid two">
+            <label>
+              Alamat Lengkap
+              <input onChange={(event) => setForm({ ...form, address: event.target.value })} value={form.address} />
+            </label>
+            <label>
+              Status
+              <select onChange={(event) => setForm({ ...form, status: event.target.value })} value={form.status}>
+                <option value="active">active</option>
+                <option value="inactive">inactive</option>
+              </select>
+            </label>
+          </div>
+          <button className="primary-button" onClick={submit} type="button">
+            {editing ? "Update Company" : "+ Tambah Company"}
+          </button>
+        </div>
+      ) : null}
+      <DataTable columns="0.8fr 1.2fr 1fr 1.6fr 0.8fr 120px">
+        <TableHead cells={["Kode", "Nama", "Tipe", "Alamat", "Status", "Aksi"]} />
+        {companies.map((company) => (
+          <div className="table-row" key={company.id}>
+            <strong>{company.code}</strong>
+            <span>{company.name}</span>
+            <span>{company.type}</span>
+            <span>{company.address || "-"}</span>
+            <StatusBadge status={company.status} />
+            <MasterActions
+              disabled={!isAdmin}
+              onDelete={() => deleteCompany(company.id).then(onChanged)}
+              onEdit={() => {
+                setEditing(company);
+                setForm({
+                  code: company.code,
+                  name: company.name,
+                  type: company.type,
+                  status: company.status,
+                  isDefault: company.isDefault,
+                  address: company.address || ""
+                });
+              }}
+            />
+          </div>
+        ))}
+      </DataTable>
+    </section>
+  );
+}
+
+function UserMasterPage({
+  users,
+  companies,
+  roles,
+  isAdmin,
+  onChanged
+}: {
+  users: User[];
+  companies: Company[];
+  roles: Role[];
+  isAdmin: boolean;
+  onChanged: () => Promise<void>;
+}) {
+  const empty = { name: "", email: "", password: "", status: "active", companyIds: [] as string[], roleIds: [] as string[] };
+  const [editing, setEditing] = useState<User | null>(null);
+  const [form, setForm] = useState(empty);
+
+  async function submit() {
+    await saveUser(form, editing?.id);
+    setEditing(null);
+    setForm(empty);
+    await onChanged();
+  }
+
+  return (
+    <section className="panel">
+      <div className="panel-header">
+        <div>
+          <h2>User Management</h2>
+          <p>Maintain login, assignment Nama PT, dan roles user.</p>
+        </div>
+      </div>
+      {isAdmin ? (
+        <div className="master-form">
+          <div className="form-grid three">
+            <label>
+              Nama User
+              <input onChange={(event) => setForm({ ...form, name: event.target.value })} value={form.name} />
+            </label>
+            <label>
+              Email / Username
+              <input onChange={(event) => setForm({ ...form, email: event.target.value })} value={form.email} />
+            </label>
+            <label>
+              Password {editing ? "(kosongkan jika tidak diubah)" : ""}
+              <input onChange={(event) => setForm({ ...form, password: event.target.value })} type="password" value={form.password} />
+            </label>
+          </div>
+          <div className="form-grid three">
+            <label>
+              Company Assignment
+              <select multiple onChange={(event) => setForm({ ...form, companyIds: selectedValues(event.currentTarget) })} value={form.companyIds}>
+                {companies.map((company) => (
+                  <option key={company.id} value={company.id}>
+                    {company.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Roles
+              <select multiple onChange={(event) => setForm({ ...form, roleIds: selectedValues(event.currentTarget) })} value={form.roleIds}>
+                {roles.map((role) => (
+                  <option key={role.id} value={role.id}>
+                    {role.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Status
+              <select onChange={(event) => setForm({ ...form, status: event.target.value })} value={form.status}>
+                <option value="active">active</option>
+                <option value="inactive">inactive</option>
+              </select>
+            </label>
+          </div>
+          <button className="primary-button" onClick={submit} type="button">
+            {editing ? "Update User" : "+ Tambah User"}
+          </button>
+        </div>
+      ) : null}
+      <DataTable columns="1fr 1.4fr 1.6fr 1.2fr 0.8fr 120px">
+        <TableHead cells={["Nama", "Email", "Company", "Role", "Status", "Aksi"]} />
+        {users.map((user) => (
+          <div className="table-row" key={user.id}>
+            <strong>{user.name}</strong>
+            <span>{user.email}</span>
+            <span>{user.companies.map((company) => company.name).join(", ")}</span>
+            <span>{user.roles.map((role) => role.name).join(", ")}</span>
+            <StatusBadge status={user.status} />
+            <MasterActions
+              disabled={!isAdmin}
+              onDelete={() => deleteUser(user.id).then(onChanged)}
+              onEdit={() => {
+                setEditing(user);
+                setForm({
+                  name: user.name,
+                  email: user.email,
+                  password: "",
+                  status: user.status,
+                  companyIds: user.companies.map((company) => company.id),
+                  roleIds: user.roles.map((role) => role.id)
+                });
+              }}
+            />
+          </div>
+        ))}
+      </DataTable>
+    </section>
+  );
+}
+
+function RoleMasterPage({ roles, isAdmin, onChanged }: { roles: Role[]; isAdmin: boolean; onChanged: () => Promise<void> }) {
+  const availableModules = menuItems.flatMap((item) => item.moduleKeys).filter((value, index, array) => array.indexOf(value) === index);
+  const empty = { id: "", name: "", modules: [] as string[], status: "active" };
+  const [editing, setEditing] = useState<Role | null>(null);
+  const [form, setForm] = useState(empty);
+
+  async function submit() {
+    await saveRole(form, editing?.id);
+    setEditing(null);
+    setForm(empty);
+    await onChanged();
+  }
+
+  return (
+    <section className="panel">
+      <div className="panel-header">
+        <div>
+          <h2>Roles Management</h2>
+          <p>Atur roles dapat menu apa saja. Hanya Administrator yang bisa CRUD.</p>
+        </div>
+      </div>
+      {isAdmin ? (
+        <div className="master-form">
+          <div className="form-grid three">
+            <label>
+              Kode Role
+              <input disabled={Boolean(editing)} onChange={(event) => setForm({ ...form, id: event.target.value })} value={form.id} />
+            </label>
+            <label>
+              Nama Role
+              <input onChange={(event) => setForm({ ...form, name: event.target.value })} value={form.name} />
+            </label>
+            <label>
+              Status
+              <select onChange={(event) => setForm({ ...form, status: event.target.value })} value={form.status}>
+                <option value="active">active</option>
+                <option value="inactive">inactive</option>
+              </select>
+            </label>
+          </div>
+          <div className="module-grid">
+            {availableModules.map((module) => (
+              <label className="check-row" key={module}>
+                <input
+                  checked={form.modules.includes(module)}
+                  onChange={(event) =>
+                    setForm({
+                      ...form,
+                      modules: event.target.checked ? [...form.modules, module] : form.modules.filter((item) => item !== module)
+                    })
+                  }
+                  type="checkbox"
+                />
+                {module}
+              </label>
+            ))}
+          </div>
+          <button className="primary-button" onClick={submit} type="button">
+            {editing ? "Update Role" : "+ Tambah Role"}
+          </button>
+        </div>
+      ) : null}
+      <DataTable columns="1fr 1.2fr 2fr 0.8fr 120px">
+        <TableHead cells={["Kode", "Role", "Menu", "Status", "Aksi"]} />
+        {roles.map((role) => (
+          <div className="table-row" key={role.id}>
+            <strong>{role.id}</strong>
+            <span>{role.name}</span>
+            <span>{role.modules.join(", ")}</span>
+            <StatusBadge status={role.status} />
+            <MasterActions
+              disabled={!isAdmin}
+              onDelete={() => deleteRole(role.id).then(onChanged)}
+              onEdit={() => {
+                setEditing(role);
+                setForm({ id: role.id, name: role.name, modules: role.modules, status: role.status });
+              }}
+            />
+          </div>
+        ))}
+      </DataTable>
+    </section>
+  );
+}
+
+function VendorMasterPage({
+  vendors,
+  companies,
+  isAdmin,
+  onChanged
+}: {
+  vendors: Vendor[];
+  companies: Company[];
+  isAdmin: boolean;
+  onChanged: () => Promise<void>;
+}) {
+  const empty = {
+    companyId: companies[0]?.id || "",
+    code: "",
+    name: "",
+    contactPerson: "",
+    email: "",
+    type: "Barang / Jasa",
+    status: "active",
+    address: "",
+    note: ""
+  };
+  const [editing, setEditing] = useState<Vendor | null>(null);
+  const [form, setForm] = useState(empty);
+
+  useEffect(() => {
+    if (!form.companyId && companies[0]?.id) {
+      setForm((current) => ({ ...current, companyId: companies[0].id }));
+    }
+  }, [companies, form.companyId]);
+
+  async function submit() {
+    await saveVendor(form, editing?.id);
+    setEditing(null);
+    setForm({ ...empty, companyId: companies[0]?.id || "" });
+    await onChanged();
+  }
+
+  return (
+    <section className="panel">
+      <div className="panel-header">
+        <div>
+          <h2>Master Vendor</h2>
+          <p>CRUD vendor per company, termasuk alamat detail dan kontak.</p>
+        </div>
+      </div>
+      {isAdmin ? (
+        <div className="master-form">
+          <div className="form-grid three">
+            <label>
+              Company
+              <select onChange={(event) => setForm({ ...form, companyId: event.target.value })} value={form.companyId}>
+                {companies.map((company) => (
+                  <option key={company.id} value={company.id}>
+                    {company.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Kode Vendor
+              <input onChange={(event) => setForm({ ...form, code: event.target.value })} value={form.code} />
+            </label>
+            <label>
+              Nama Vendor
+              <input onChange={(event) => setForm({ ...form, name: event.target.value })} value={form.name} />
+            </label>
+          </div>
+          <div className="form-grid three">
+            <label>
+              Kontak
+              <input onChange={(event) => setForm({ ...form, contactPerson: event.target.value })} value={form.contactPerson} />
+            </label>
+            <label>
+              Email
+              <input onChange={(event) => setForm({ ...form, email: event.target.value })} value={form.email} />
+            </label>
+            <label>
+              Tipe
+              <input onChange={(event) => setForm({ ...form, type: event.target.value })} value={form.type} />
+            </label>
+          </div>
+          <div className="form-grid two">
+            <label>
+              Alamat Detail
+              <input onChange={(event) => setForm({ ...form, address: event.target.value })} value={form.address} />
+            </label>
+            <label>
+              Status
+              <select onChange={(event) => setForm({ ...form, status: event.target.value })} value={form.status}>
+                <option value="active">active</option>
+                <option value="inactive">inactive</option>
+              </select>
+            </label>
+          </div>
+          <button className="primary-button" onClick={submit} type="button">
+            {editing ? "Update Vendor" : "+ Tambah Vendor"}
+          </button>
+        </div>
+      ) : null}
+      <DataTable columns="0.8fr 1.3fr 1fr 1fr 1.5fr 0.8fr 120px">
+        <TableHead cells={["Kode", "Nama", "Company", "Tipe", "Alamat", "Status", "Aksi"]} />
+        {vendors.map((vendor) => (
+          <div className="table-row" key={vendor.id}>
+            <strong>{vendor.code}</strong>
+            <span>{vendor.name}</span>
+            <span>{vendor.company?.name}</span>
+            <span>{vendor.type}</span>
+            <span>{vendor.address || "-"}</span>
+            <StatusBadge status={vendor.status} />
+            <MasterActions
+              disabled={!isAdmin}
+              onDelete={() => deleteVendor(vendor.id).then(onChanged)}
+              onEdit={() => {
+                setEditing(vendor);
+                setForm({
+                  companyId: vendor.company?.id || companies[0]?.id || "",
+                  code: vendor.code,
+                  name: vendor.name,
+                  contactPerson: "",
+                  email: "",
+                  type: vendor.type,
+                  status: vendor.status,
+                  address: vendor.address || "",
+                  note: ""
+                });
+              }}
+            />
+          </div>
+        ))}
+      </DataTable>
+    </section>
+  );
+}
+
 function DocumentForm({
   title,
   form,
@@ -824,12 +1228,41 @@ function StatusBadge({ status }: { status: string }) {
   return <span className={`status ${status}`}>{status.replaceAll("_", " ")}</span>;
 }
 
+function MasterActions({
+  disabled,
+  onEdit,
+  onDelete
+}: {
+  disabled: boolean;
+  onEdit: () => void;
+  onDelete: () => Promise<void>;
+}) {
+  if (disabled) {
+    return <span className="muted">Read only</span>;
+  }
+
+  return (
+    <div className="action-row">
+      <button className="icon-button" onClick={onEdit} title="Edit" type="button">
+        ✎
+      </button>
+      <button className="icon-button danger" onClick={() => void onDelete()} title="Nonaktifkan" type="button">
+        ×
+      </button>
+    </div>
+  );
+}
+
 function filterMenu(roles: Role[]): MenuItem[] {
   const modules = new Set(roles.flatMap((role) => role.modules));
   if (modules.has("master")) {
     return menuItems;
   }
   return menuItems.filter((item) => item.moduleKeys.some((key) => modules.has(key)));
+}
+
+function selectedValues(select: HTMLSelectElement) {
+  return Array.from(select.selectedOptions).map((option) => option.value);
 }
 
 function money(value: number | string) {
