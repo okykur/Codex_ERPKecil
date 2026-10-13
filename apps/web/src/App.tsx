@@ -374,7 +374,17 @@ function PurchaseOrderPage({
   const [taxPercent, setTaxPercent] = useState("11");
   const [approvalRows, setApprovalRows] = useState<ApprovalDraft[]>([{ ...blankApproval }]);
   const [quotation, setQuotation] = useState({ vendorName: "", attachmentName: "" });
+  const [showForm, setShowForm] = useState(false);
   const selectedPr = purchaseRequests.find((pr) => pr.id === selectedPrId);
+
+  function openCreateForm() {
+    setSelectedPrId(approvedPrs[0]?.id || "");
+    setVendorId(vendors[0]?.id || "");
+    setTaxPercent("11");
+    setApprovalRows([{ ...blankApproval }]);
+    setQuotation({ vendorName: "", attachmentName: "" });
+    setShowForm(true);
+  }
 
   async function submit() {
     await createPurchaseOrder({
@@ -384,6 +394,7 @@ function PurchaseOrderPage({
       approvals: approvalRows,
       quotations: [{ ...quotation, vendorName: quotation.vendorName || vendors.find((vendor) => vendor.id === vendorId)?.name, selected: true }]
     });
+    setShowForm(false);
     await onSaved();
   }
 
@@ -395,6 +406,9 @@ function PurchaseOrderPage({
             <h2>List Purchase Order</h2>
             <p>Data PO dari PR approved, termasuk PO rejected/cancelled.</p>
           </div>
+          <button className="primary-button" disabled={!approvedPrs.length} onClick={openCreateForm} type="button">
+            + Buat PO
+          </button>
         </div>
         <DataTable columns="1fr 1fr 1fr 1fr 1fr 130px">
           <TableHead cells={["Nomor PO", "Nomor PR", "Vendor", "Total", "Status", "Aksi"]} />
@@ -419,16 +433,10 @@ function PurchaseOrderPage({
           ))}
         </DataTable>
       </section>
-      <section className="panel">
-        <div className="panel-header">
-          <div>
-            <h2>Buat Purchase Order</h2>
-            <p>Pilih nomor PR approved, vendor, PPN, attachment penawaran, dan approval PO.</p>
-          </div>
-          <button className="primary-button" disabled={!selectedPrId} onClick={submit} type="button">
-            + Buat PO
-          </button>
-        </div>
+      {showForm ? (
+        <MasterModal onClose={() => setShowForm(false)} onSave={submit} title="Buat Purchase Order">
+        <div className="master-form">
+          <p className="muted">Pilih nomor PR approved, vendor, PPN, attachment penawaran, dan approval PO.</p>
         <div className="form-grid three">
           <label>
             Purchase Request Number
@@ -472,7 +480,9 @@ function PurchaseOrderPage({
         </div>
         <ReadonlyItems items={selectedPr?.items || []} taxPercent={Number(taxPercent || 0)} />
         <ApprovalEditor approvals={approvalRows} setApprovals={setApprovalRows} />
-      </section>
+        </div>
+        </MasterModal>
+      ) : null}
     </div>
   );
 }
