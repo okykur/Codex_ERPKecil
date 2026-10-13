@@ -446,6 +446,8 @@ textarea:focus {
 }
 
 .modal-card {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   width: min(1040px, 96vw);
   max-height: 90vh;
   overflow: hidden;
@@ -460,7 +462,7 @@ textarea:focus {
 }
 
 .modal-body {
-  max-height: calc(90vh - 154px);
+  min-height: 0;
   overflow-y: auto;
   padding: 0 22px;
 }
@@ -476,6 +478,7 @@ textarea:focus {
   padding: 16px 22px 20px;
   border-top: 1px solid var(--line);
   background: #fff;
+  box-shadow: 0 -10px 24px rgba(15, 39, 66, 0.06);
 }
 
 .module-grid {

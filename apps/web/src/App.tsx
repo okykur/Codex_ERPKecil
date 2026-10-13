@@ -1325,7 +1325,7 @@ function MasterModal({
             Cancel
           </button>
           <button className="primary-button" onClick={() => void onSave()} type="button">
-            Save
+            Simpan
           </button>
         </div>
       </section>
