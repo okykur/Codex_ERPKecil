@@ -368,7 +368,13 @@ function PurchaseOrderPage({
   onSaved: () => Promise<void>;
   onCancel: (id: string) => Promise<void>;
 }) {
-  const approvedPrs = purchaseRequests.filter((pr) => pr.status === "approved");
+  const prIdsWithPo = new Set(
+    purchaseOrders
+      .filter((po) => po.status !== "cancelled")
+      .map((po) => po.purchaseRequest?.id)
+      .filter(Boolean)
+  );
+  const approvedPrs = purchaseRequests.filter((pr) => pr.status === "approved" && !prIdsWithPo.has(pr.id));
   const [selectedPrId, setSelectedPrId] = useState(approvedPrs[0]?.id || "");
   const [vendorId, setVendorId] = useState(vendors[0]?.id || "");
   const [taxPercent, setTaxPercent] = useState("11");
@@ -444,9 +450,9 @@ function PurchaseOrderPage({
       {showForm ? (
         <MasterModal onClose={() => setShowForm(false)} onSave={submit} title="Buat Purchase Order">
         <div className="master-form">
-          <p className="muted">Pilih nomor PR approved, vendor, PPN, attachment penawaran, dan approval PO.</p>
+          <p className="muted">Pilih nomor PR approved yang belum pernah dibuatkan PO.</p>
           {!approvedPrs.length ? (
-            <div className="alert">Belum ada Purchase Request approved. Approve PR dulu di menu Persetujuan.</div>
+            <div className="alert">Belum ada Purchase Request approved yang belum dibuatkan Purchase Order.</div>
           ) : null}
         <div className="form-grid three">
           <label>
