@@ -335,17 +335,21 @@ function PurchaseRequestPage({
         </DataTable>
       </section>
       {showForm ? (
+        <MasterModal
+          onClose={() => setShowForm(false)}
+          onSave={submit}
+          title={editing ? `Edit PR ${editing.documentNumber}` : "Buat Purchase Request"}
+        >
         <DocumentForm
           approvalRows={approvalRows}
           form={form}
           items={items}
-          primaryLabel={editing ? "Update Purchase Request" : "Simpan Purchase Request"}
           setApprovalRows={setApprovalRows}
           setForm={setForm}
           setItems={setItems}
-          submit={submit}
           title={editing ? `Edit PR ${editing.documentNumber}` : "Buat Purchase Request"}
         />
+        </MasterModal>
       ) : null}
     </div>
   );
@@ -1138,9 +1142,7 @@ function DocumentForm({
   items,
   setItems,
   approvalRows,
-  setApprovalRows,
-  primaryLabel,
-  submit
+  setApprovalRows
 }: {
   title: string;
   form: { title: string; department: string; priority: string; description: string };
@@ -1149,20 +1151,10 @@ function DocumentForm({
   setItems: (value: PurchaseItem[]) => void;
   approvalRows: ApprovalDraft[];
   setApprovalRows: (value: ApprovalDraft[]) => void;
-  primaryLabel: string;
-  submit: () => Promise<void>;
 }) {
   return (
-    <section className="panel">
-      <div className="panel-header">
-        <div>
-          <h2>{title}</h2>
-          <p>Isi informasi PR, tambah beberapa item, lalu tambahkan PIC approval.</p>
-        </div>
-        <button className="primary-button" onClick={submit} type="button">
-          {primaryLabel}
-        </button>
-      </div>
+    <div className="master-form">
+      <p className="muted">{title}: isi informasi PR, tambah beberapa item, lalu tambahkan PIC approval.</p>
       <div className="form-grid two">
         <label>
           Judul PR
@@ -1186,7 +1178,7 @@ function DocumentForm({
       </div>
       <EditableItems items={items} setItems={setItems} />
       <ApprovalEditor approvals={approvalRows} setApprovals={setApprovalRows} />
-    </section>
+    </div>
   );
 }
 
