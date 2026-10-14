@@ -23,10 +23,11 @@ export class RolesService {
   async create(body: unknown, user: AuthenticatedUser) {
     assertAdministrator(user);
     const input = body as RoleInput;
-    this.validate(input, true);
+    this.validate(input);
+    const id = await this.generateRoleId(input.name!);
     return this.roles.save(
       this.roles.create({
-        id: input.id!.trim(),
+        id,
         name: input.name!.trim(),
         modules: input.modules || [],
         status: input.status || "active"
@@ -41,7 +42,7 @@ export class RolesService {
       throw new NotFoundException("Role tidak ditemukan.");
     }
     const input = body as RoleInput;
-    this.validate(input, false);
+    this.validate(input);
     role.name = input.name!.trim();
     role.modules = input.modules || [];
     role.status = input.status || "active";
@@ -58,9 +59,32 @@ export class RolesService {
     return this.roles.save(role);
   }
 
-  private validate(input: RoleInput, requireId: boolean) {
-    if ((requireId && !input.id?.trim()) || !input.name?.trim()) {
-      throw new BadRequestException("Kode role dan nama role wajib diisi.");
+  private validate(input: RoleInput) {
+    if (!input.name?.trim()) {
+      throw new BadRequestException("Nama role wajib diisi.");
     }
+  }
+
+  private async generateRoleId(name: string) {
+    const base = this.slugify(name);
+    let candidate = base;
+    let suffix = 1;
+
+    while (await this.roles.exist({ where: { id: candidate } })) {
+      suffix += 1;
+      candidate = `${base}-${suffix}`;
+    }
+
+    return candidate;
+  }
+
+  private slugify(value: string) {
+    const slug = value
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+
+    return slug || `role-${Date.now()}`;
   }
 }

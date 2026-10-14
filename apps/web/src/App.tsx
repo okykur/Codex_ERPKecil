@@ -948,10 +948,12 @@ function RoleMasterPage({ roles, isAdmin, onChanged }: { roles: Role[]; isAdmin:
         >
         <div className="master-form">
           <div className="form-grid three">
-            <label>
-              Kode Role
-              <input disabled={Boolean(editing)} onChange={(event) => setForm({ ...form, id: event.target.value })} value={form.id} />
-            </label>
+            {editing ? (
+              <label>
+                Kode Role
+                <input disabled value={form.id} />
+              </label>
+            ) : null}
             <label>
               Nama Role
               <input onChange={(event) => setForm({ ...form, name: event.target.value })} value={form.name} />
