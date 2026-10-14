@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { AppShell, MenuItem, menuItems } from "./components/AppShell";
+import { AppShell, MenuItem, menuItems, moduleLabel } from "./components/AppShell";
 import {
   ApprovalDraft,
   ApprovalRow,
@@ -979,7 +979,7 @@ function RoleMasterPage({ roles, isAdmin, onChanged }: { roles: Role[]; isAdmin:
                   }
                   type="checkbox"
                 />
-                {module}
+                {moduleLabel(module)}
               </label>
             ))}
           </div>
@@ -992,7 +992,7 @@ function RoleMasterPage({ roles, isAdmin, onChanged }: { roles: Role[]; isAdmin:
           <div className="table-row" key={role.id}>
             <strong>{role.id}</strong>
             <span>{role.name}</span>
-            <span>{role.modules.join(", ")}</span>
+            <span>{role.modules.map(moduleLabel).join(", ")}</span>
             <StatusBadge status={role.status} />
             <MasterActions
               disabled={!isAdmin}

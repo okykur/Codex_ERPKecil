@@ -21,6 +21,14 @@ export const menuItems: MenuItem[] = [
   { id: "vendors", label: "Master Vendor", group: "MASTER", moduleKeys: ["master-vendor", "master"] }
 ];
 
+export function moduleLabel(moduleKey: string) {
+  if (moduleKey === "master") {
+    return "Semua Menu Master";
+  }
+
+  return menuItems.find((item) => item.moduleKeys[0] === moduleKey)?.label || moduleKey;
+}
+
 type AppShellProps = {
   activePage: string;
   allowedMenu: MenuItem[];
