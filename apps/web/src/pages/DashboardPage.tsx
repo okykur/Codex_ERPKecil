@@ -43,8 +43,15 @@ export function DashboardPage({
   const canViewPo = canSee("purchase-order");
   const canViewReceive = canSee("receive");
   const showTransactionRelation = canViewPr || canViewPo || canViewReceive;
-  const relationColumnCount = 1 + Number(canViewPr) + Number(canViewPo) + Number(canViewPr || canViewPo) + Number(canViewReceive);
-  const relationGridStyle = { gridTemplateColumns: `repeat(${relationColumnCount}, minmax(150px, 1fr))` };
+  const relationGridStyle = {
+    gridTemplateColumns: [
+      canViewPr ? "minmax(180px, 1.2fr)" : "",
+      "minmax(180px, 1.3fr)",
+      canViewPo ? "minmax(180px, 1.2fr)" : "",
+      canViewPr || canViewPo ? "minmax(220px, 1.4fr)" : "",
+      canViewReceive ? "minmax(190px, 1.2fr)" : ""
+    ].filter(Boolean).join(" ")
+  };
 
   return (
     <div className="page-stack">
@@ -65,18 +72,20 @@ export function DashboardPage({
             <p>Data transaksi mengikuti akses role dan PT aktif.</p>
           </div>
         </div>
-        <div className="table">
+        <div className="table dashboard-relation-table">
           <div className="table-head" style={relationGridStyle}>
             {canViewPr ? <span>Nomor PR</span> : null}
             <span>Company</span>
             {canViewPo ? <span>Nomor PO</span> : null}
-            {canViewPr || canViewPo ? <span>Status</span> : null}
+            {canViewPr || canViewPo ? <span>Status PR/PO</span> : null}
             {canViewReceive ? <span>Nomor Receive</span> : null}
           </div>
           {purchaseRequests.length ? (
             purchaseRequests.map((pr) => {
               const relatedPo = purchaseOrders.find((po) => po.purchaseRequest?.id === pr.id);
-              const relatedReceive = relatedPo ? receives.find((receive) => receive.purchaseOrder?.id === relatedPo.id) : undefined;
+              const relatedReceives = relatedPo
+                ? receives.filter((receive) => receive.purchaseOrder?.id === relatedPo.id)
+                : [];
               return (
               <div className="table-row" key={pr.id} style={relationGridStyle}>
                 {canViewPr ? <strong>{pr.documentNumber}</strong> : null}
@@ -85,7 +94,11 @@ export function DashboardPage({
                 {canViewPr || canViewPo ? (
                   <span>{[canViewPr ? `PR: ${pr.status}` : "", canViewPo ? `PO: ${relatedPo?.status || "-"}` : ""].filter(Boolean).join(" / ")}</span>
                 ) : null}
-                {canViewReceive ? <span>{relatedReceive?.documentNumber || "-"}</span> : null}
+                {canViewReceive ? (
+                  <span className="receive-number-cell">
+                    {relatedReceives.map((receive) => receive.documentNumber).join(", ") || "-"}
+                  </span>
+                ) : null}
               </div>
               );
             })

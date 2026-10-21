@@ -223,6 +223,21 @@ button {
   grid-template-columns: 1.2fr 1.2fr 1fr 1fr;
 }
 
+.dashboard-relation-table .table-head,
+.dashboard-relation-table .table-row {
+  min-width: 1050px;
+}
+
+.dashboard-relation-table .table-head > span,
+.dashboard-relation-table .table-row > span,
+.dashboard-relation-table .table-row > strong {
+  white-space: nowrap;
+}
+
+.receive-number-cell {
+  overflow-x: auto;
+}
+
 .table-head {
   background: #edf4ff;
   color: #58708c;
