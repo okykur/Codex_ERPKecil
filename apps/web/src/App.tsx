@@ -23,6 +23,7 @@ import {
   deleteVendor,
   fetchApprovals,
   fetchCompanies,
+  fetchEligiblePurchaseRequests,
   fetchLoginCompanies,
   fetchPurchaseOrders,
   fetchPurchaseRequests,
@@ -55,6 +56,7 @@ export function App() {
   const [roles, setRoles] = useState<Role[]>([]);
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [purchaseRequests, setPurchaseRequests] = useState<PurchaseRequest[]>([]);
+  const [eligiblePurchaseRequests, setEligiblePurchaseRequests] = useState<PurchaseRequest[]>([]);
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
   const [receivableOrders, setReceivableOrders] = useState<PurchaseOrder[]>([]);
   const [approvals, setApprovals] = useState<ApprovalRow[]>([]);
@@ -70,13 +72,17 @@ export function App() {
       return;
     }
     const companyId = session.activeCompany.id;
-    const [companyData, userData, roleData, vendorData, prData, poData, approvalData, receivePoData, receiveData] =
+    const canAccessPurchaseOrders = session.user.roles.some(
+      (role) => role.id === "administrator" || role.modules.includes("purchase-order")
+    );
+    const [companyData, userData, roleData, vendorData, prData, eligiblePrData, poData, approvalData, receivePoData, receiveData] =
       await Promise.all([
         fetchCompanies(),
         fetchUsers(),
         fetchRoles(),
         fetchVendors(companyId),
         fetchPurchaseRequests(companyId),
+        canAccessPurchaseOrders ? fetchEligiblePurchaseRequests() : Promise.resolve([]),
         fetchPurchaseOrders(companyId),
         fetchApprovals(),
         fetchReceivablePurchaseOrders(),
@@ -87,6 +93,7 @@ export function App() {
     setRoles(roleData);
     setVendors(vendorData);
     setPurchaseRequests(prData);
+    setEligiblePurchaseRequests(eligiblePrData);
     setPurchaseOrders(poData);
     setApprovals(approvalData);
     setReceivableOrders(receivePoData);
@@ -155,7 +162,7 @@ export function App() {
           onCancel={(id) => cancelPurchaseOrder(id).then(() => refreshWithNotice("Purchase Order dicancel."))}
           onSaved={() => refreshWithNotice("Purchase Order tersimpan.")}
           purchaseOrders={purchaseOrders}
-          purchaseRequests={purchaseRequests}
+          purchaseRequests={eligiblePurchaseRequests}
           vendors={vendors}
         />
       ) : null}

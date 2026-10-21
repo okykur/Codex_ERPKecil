@@ -230,6 +230,11 @@ export async function fetchPurchaseOrders(companyId?: string, search?: string) {
   return data;
 }
 
+export async function fetchEligiblePurchaseRequests() {
+  const { data } = await api.get<PurchaseRequest[]>("/purchase-orders/eligible-purchase-requests");
+  return data;
+}
+
 export async function createPurchaseOrder(payload: unknown) {
   const { data } = await api.post<PurchaseOrder>("/purchase-orders", payload);
   return data;

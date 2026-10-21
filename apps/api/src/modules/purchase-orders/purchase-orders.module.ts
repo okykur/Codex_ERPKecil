@@ -7,6 +7,7 @@ import {
   PurchaseOrderItem,
   PurchaseRequest,
   RfqQuotation,
+  Role,
   Vendor
 } from "../../database/entities/erp.entities";
 import { AuthModule } from "../auth/auth.module";
@@ -23,6 +24,7 @@ import { PurchaseOrdersService } from "./purchase-orders.service";
       PurchaseOrderItem,
       RfqQuotation,
       Vendor,
+      Role,
       ApprovalStep
     ])
   ],

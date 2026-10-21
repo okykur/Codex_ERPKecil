@@ -12,7 +12,6 @@ import {
 import { AuthenticatedUser } from "../auth/jwt-auth.guard";
 
 type PurchaseRequestQuery = {
-  companyId?: string;
   search?: string;
 };
 
@@ -52,10 +51,12 @@ export class PurchaseRequestsService {
     @InjectRepository(PurchaseOrder) private readonly purchaseOrders: Repository<PurchaseOrder>
   ) {}
 
-  findAll(query: PurchaseRequestQuery) {
+  findAll(query: PurchaseRequestQuery, user: AuthenticatedUser) {
+    const isAdministrator = user.roles.includes("administrator");
     return this.purchaseRequests.find({
       where: {
-        ...(query.companyId ? { company: { id: query.companyId } } : {}),
+        company: { id: user.companyId },
+        ...(!isAdministrator ? { requester: { id: user.sub } } : {}),
         ...(query.search ? { documentNumber: ILike(`%${query.search}%`) } : {})
       },
       relations: { company: true, requester: true, items: true },
@@ -107,8 +108,13 @@ export class PurchaseRequestsService {
 
   async update(id: string, body: unknown, user: AuthenticatedUser) {
     const input = body as PurchaseRequestInput;
+    const isAdministrator = user.roles.includes("administrator");
     const pr = await this.purchaseRequests.findOne({
-      where: { id, company: { id: user.companyId } },
+      where: {
+        id,
+        company: { id: user.companyId },
+        ...(!isAdministrator ? { requester: { id: user.sub } } : {})
+      },
       relations: { items: true, company: true }
     });
     if (!pr) {
@@ -148,7 +154,14 @@ export class PurchaseRequestsService {
   }
 
   async cancel(id: string, user: AuthenticatedUser) {
-    const pr = await this.purchaseRequests.findOne({ where: { id, company: { id: user.companyId } } });
+    const isAdministrator = user.roles.includes("administrator");
+    const pr = await this.purchaseRequests.findOne({
+      where: {
+        id,
+        company: { id: user.companyId },
+        ...(!isAdministrator ? { requester: { id: user.sub } } : {})
+      }
+    });
     if (!pr) {
       throw new NotFoundException("Purchase Request tidak ditemukan.");
     }

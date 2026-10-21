@@ -12,6 +12,12 @@ export class PurchaseOrdersController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Get("eligible-purchase-requests")
+  eligiblePurchaseRequests(@Req() request: { user: AuthenticatedUser }) {
+    return this.purchaseOrdersService.eligiblePurchaseRequests(request.user);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Post()
   create(@Body() body: unknown, @Req() request: { user: AuthenticatedUser }) {
     return this.purchaseOrdersService.create(body, request.user);

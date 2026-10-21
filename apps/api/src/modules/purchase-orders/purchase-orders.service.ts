@@ -1,6 +1,6 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { ILike, Like, Repository } from "typeorm";
+import { ILike, Like, Not, Repository } from "typeorm";
 import {
   ApprovalStep,
   Company,
@@ -8,6 +8,7 @@ import {
   PurchaseOrderItem,
   PurchaseRequest,
   RfqQuotation,
+  Role,
   Vendor
 } from "../../database/entities/erp.entities";
 import { AuthenticatedUser } from "../auth/jwt-auth.guard";
@@ -47,6 +48,7 @@ export class PurchaseOrdersService {
     @InjectRepository(PurchaseOrderItem) private readonly items: Repository<PurchaseOrderItem>,
     @InjectRepository(RfqQuotation) private readonly quotations: Repository<RfqQuotation>,
     @InjectRepository(Vendor) private readonly vendors: Repository<Vendor>,
+    @InjectRepository(Role) private readonly roles: Repository<Role>,
     @InjectRepository(ApprovalStep) private readonly approvals: Repository<ApprovalStep>
   ) {}
 
@@ -60,6 +62,21 @@ export class PurchaseOrdersService {
       order: { documentNumber: "DESC" },
       take: 100
     });
+  }
+
+  async eligiblePurchaseRequests(user: AuthenticatedUser) {
+    await this.assertPurchaseOrderAccess(user);
+    const purchaseRequests = await this.purchaseRequests.find({
+      where: { company: { id: user.companyId }, status: "approved" },
+      relations: { company: true, requester: true, items: true },
+      order: { createdAt: "DESC" }
+    });
+    const existingPurchaseOrders = await this.purchaseOrders.find({
+      where: { company: { id: user.companyId }, status: Not("cancelled") },
+      relations: { purchaseRequest: true }
+    });
+    const usedPurchaseRequestIds = new Set(existingPurchaseOrders.map((po) => po.purchaseRequest?.id).filter(Boolean));
+    return purchaseRequests.filter((pr) => !usedPurchaseRequestIds.has(pr.id));
   }
 
   async create(body: unknown, user: AuthenticatedUser) {
@@ -76,6 +93,16 @@ export class PurchaseOrdersService {
     }
     if (pr.status !== "approved") {
       throw new BadRequestException("PO hanya bisa dibuat dari PR yang sudah approved.");
+    }
+    const existingPurchaseOrder = await this.purchaseOrders.count({
+      where: {
+        company: { id: user.companyId },
+        purchaseRequest: { id: pr.id },
+        status: Not("cancelled")
+      }
+    });
+    if (existingPurchaseOrder) {
+      throw new BadRequestException("Purchase Request ini sudah memiliki Purchase Order aktif.");
     }
 
     const vendor = input.vendorId ? await this.vendors.findOne({ where: { id: input.vendorId } }) : null;
@@ -186,5 +213,18 @@ export class PurchaseOrdersService {
       where: { company: { id: companyId }, documentNumber: Like(`${prefix}%`) }
     });
     return `${prefix}${String(count + 1).padStart(5, "0")}`;
+  }
+
+  private async assertPurchaseOrderAccess(user: AuthenticatedUser) {
+    if (user.roles.includes("administrator")) {
+      return;
+    }
+    const roles = await this.roles.findByIds(user.roles);
+    const canAccessPurchaseOrders = roles.some(
+      (role) => role.status === "active" && role.modules.includes("purchase-order")
+    );
+    if (!canAccessPurchaseOrders) {
+      throw new ForbiddenException("Role tidak memiliki akses ke modul Purchase Order.");
+    }
   }
 }

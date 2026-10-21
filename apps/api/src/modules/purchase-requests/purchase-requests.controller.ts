@@ -6,9 +6,10 @@ import { PurchaseRequestsService } from "./purchase-requests.service";
 export class PurchaseRequestsController {
   constructor(private readonly purchaseRequestsService: PurchaseRequestsService) {}
 
+  @UseGuards(JwtAuthGuard)
   @Get()
-  findAll(@Query("companyId") companyId?: string, @Query("search") search?: string) {
-    return this.purchaseRequestsService.findAll({ companyId, search });
+  findAll(@Query("search") search: string | undefined, @Req() request: { user: AuthenticatedUser }) {
+    return this.purchaseRequestsService.findAll({ search }, request.user);
   }
 
   @UseGuards(JwtAuthGuard)
