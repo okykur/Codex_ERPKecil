@@ -130,7 +130,11 @@ export function App() {
       {notice ? <div className="success">{notice}</div> : null}
       {activePage === "dashboard" ? (
         <DashboardPage
+          activeCompany={session.activeCompany}
+          allowedPageIds={allowedMenu.map((item) => item.id)}
+          assignedCompanies={session.companies}
           companies={companies}
+          isAdmin={isAdmin}
           users={users}
           vendors={vendors}
           purchaseRequests={purchaseRequests}
@@ -1389,7 +1393,7 @@ function MasterActions({
 
 function filterMenu(roles: Role[]): MenuItem[] {
   const modules = new Set(roles.flatMap((role) => role.modules));
-  if (modules.has("master")) {
+  if (roles.some((role) => role.id === "administrator")) {
     return menuItems;
   }
   return menuItems.filter((item) => item.moduleKeys.some((key) => modules.has(key)));
