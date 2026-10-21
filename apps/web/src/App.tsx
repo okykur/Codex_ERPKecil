@@ -274,6 +274,7 @@ function PurchaseRequestPage({
 }) {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<PurchaseRequest | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<PurchaseRequest | null>(null);
   const [form, setForm] = useState({ title: "", department: "", priority: "Normal", description: "" });
   const [items, setItems] = useState<PurchaseItem[]>([{ ...blankItem }]);
   const [approvalRows, setApprovalRows] = useState<ApprovalDraft[]>([{ ...blankApproval }]);
@@ -306,6 +307,14 @@ function PurchaseRequestPage({
     await savePurchaseRequest({ ...form, items, approvals: approvalRows }, editing?.id);
     setShowForm(false);
     await onSaved();
+  }
+
+  async function confirmCancel() {
+    if (!cancelTarget) {
+      return;
+    }
+    await onCancel(cancelTarget.id);
+    setCancelTarget(null);
   }
 
   return (
@@ -342,7 +351,7 @@ function PurchaseRequestPage({
                   ✎
                 </button>
                 {pr.status !== "approved" && pr.status !== "cancelled" ? (
-                  <button className="icon-button danger" onClick={() => onCancel(pr.id)} title="Cancel" type="button">
+                  <button className="icon-button danger" onClick={() => setCancelTarget(pr)} title="Cancel" type="button">
                     ×
                   </button>
                 ) : null}
@@ -367,6 +376,15 @@ function PurchaseRequestPage({
           title={editing ? `Edit PR ${editing.documentNumber}` : "Buat Purchase Request"}
         />
         </MasterModal>
+      ) : null}
+      {cancelTarget ? (
+        <ConfirmModal
+          confirmLabel="Ya, Cancel PR"
+          message={`Purchase Request ${cancelTarget.documentNumber} akan diubah menjadi cancelled. Tindakan ini tidak dapat dibatalkan.`}
+          onClose={() => setCancelTarget(null)}
+          onConfirm={confirmCancel}
+          title="Konfirmasi Cancel Purchase Request"
+        />
       ) : null}
     </div>
   );
@@ -1372,6 +1390,45 @@ function MasterModal({
           </button>
           <button className="primary-button" onClick={() => void onSave()} type="button">
             Simpan
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function ConfirmModal({
+  title,
+  message,
+  confirmLabel,
+  onClose,
+  onConfirm
+}: {
+  title: string;
+  message: string;
+  confirmLabel: string;
+  onClose: () => void;
+  onConfirm: () => Promise<void>;
+}) {
+  return (
+    <div className="modal-backdrop">
+      <section className="modal-card confirm-modal-card">
+        <div className="panel-header">
+          <div>
+            <h2>{title}</h2>
+            <p>Pastikan Purchase Request yang dipilih sudah benar.</p>
+          </div>
+          <button className="icon-button danger" onClick={onClose} title="Tutup" type="button">
+            ×
+          </button>
+        </div>
+        <div className="modal-body confirmation-copy">{message}</div>
+        <div className="modal-footer">
+          <button className="secondary-button" onClick={onClose} type="button">
+            Kembali
+          </button>
+          <button className="danger-button" onClick={() => void onConfirm()} type="button">
+            {confirmLabel}
           </button>
         </div>
       </section>
