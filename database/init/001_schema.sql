@@ -78,6 +78,7 @@ CREATE TABLE IF NOT EXISTS purchase_requests (
   requester_id uuid REFERENCES users(id),
   document_number varchar(60) NOT NULL,
   title varchar(200) NOT NULL,
+  short_description varchar(255) NOT NULL,
   description text,
   department varchar(120),
   priority varchar(80),

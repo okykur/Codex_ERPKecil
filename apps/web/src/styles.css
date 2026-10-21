@@ -434,6 +434,14 @@ textarea:focus {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.form-grid .full-field {
+  grid-column: 1 / -1;
+}
+
+textarea {
+  resize: vertical;
+}
+
 .sub-panel {
   display: grid;
   gap: 12px;

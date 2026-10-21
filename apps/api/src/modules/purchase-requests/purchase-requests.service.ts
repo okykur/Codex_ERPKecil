@@ -33,6 +33,7 @@ type ApprovalInput = {
 
 type PurchaseRequestInput = {
   title?: string;
+  shortDescription?: string;
   description?: string;
   department?: string;
   priority?: string;
@@ -82,12 +83,7 @@ export class PurchaseRequestsService {
 
   async create(body: unknown, user: AuthenticatedUser) {
     const input = body as PurchaseRequestInput;
-    if (!input.title?.trim()) {
-      throw new BadRequestException("Judul PR wajib diisi.");
-    }
-    if (!input.items?.length) {
-      throw new BadRequestException("Minimal satu item PR wajib diisi.");
-    }
+    this.validateInput(input);
 
     const company = await this.companies.findOneByOrFail({ id: user.companyId });
     const requester = await this.users.findOneByOrFail({ id: user.sub });
@@ -95,17 +91,18 @@ export class PurchaseRequestsService {
       company,
       requester,
       documentNumber: await this.nextNumber(user.companyId, "21"),
-      title: input.title.trim(),
-      description: input.description,
-      department: input.department,
+      title: input.title!.trim(),
+      shortDescription: input.shortDescription!.trim(),
+      description: input.description?.trim() || undefined,
+      department: input.department!.trim(),
       priority: input.priority || "Normal",
       status: "waiting_approval",
-      totalAmount: this.total(input.items).toFixed(2)
+      totalAmount: this.total(input.items!).toFixed(2)
     });
     const saved = await this.purchaseRequests.save(pr);
 
     await this.items.save(
-      input.items.map((item, index) =>
+      input.items!.map((item, index) =>
         this.items.create({
           purchaseRequest: saved,
           code: item.code?.trim() || `PRV-${String(index + 1).padStart(3, "0")}`,
@@ -123,6 +120,7 @@ export class PurchaseRequestsService {
 
   async update(id: string, body: unknown, user: AuthenticatedUser) {
     const input = body as PurchaseRequestInput;
+    this.validateInput(input);
     const isAdministrator = user.roles.includes("administrator");
     const pr = await this.purchaseRequests.findOne({
       where: {
@@ -144,21 +142,18 @@ export class PurchaseRequestsService {
     if (existingPurchaseOrder) {
       throw new BadRequestException("PR tidak bisa diubah karena Purchase Order sudah dibuat.");
     }
-    if (!input.items?.length) {
-      throw new BadRequestException("Minimal satu item PR wajib diisi.");
-    }
-
-    pr.title = input.title?.trim() || pr.title;
-    pr.description = input.description;
-    pr.department = input.department;
+    pr.title = input.title!.trim();
+    pr.shortDescription = input.shortDescription!.trim();
+    pr.description = input.description?.trim() || undefined;
+    pr.department = input.department!.trim();
     pr.priority = input.priority || "Normal";
-    pr.totalAmount = this.total(input.items).toFixed(2);
+    pr.totalAmount = this.total(input.items!).toFixed(2);
     pr.status = "waiting_approval";
     await this.purchaseRequests.save(pr);
 
     await this.items.delete({ purchaseRequest: { id: pr.id } });
     await this.items.save(
-      input.items.map((item, index) =>
+      input.items!.map((item, index) =>
         this.items.create({
           purchaseRequest: pr,
           code: item.code?.trim() || `PRV-${String(index + 1).padStart(3, "0")}`,
@@ -226,6 +221,70 @@ export class PurchaseRequestsService {
 
   private total(items: LineInput[]) {
     return items.reduce((sum, item) => sum + Number(item.quantity || 0) * Number(item.unitPrice || 0), 0);
+  }
+
+  private validateInput(input: PurchaseRequestInput) {
+    if (!input.title?.trim()) {
+      throw new BadRequestException("Judul PR wajib diisi.");
+    }
+    if (!input.department?.trim()) {
+      throw new BadRequestException("Departemen wajib diisi.");
+    }
+    if (!input.shortDescription?.trim()) {
+      throw new BadRequestException("Short Description wajib diisi.");
+    }
+    if (!input.items?.length) {
+      throw new BadRequestException("Minimal satu item PR wajib diisi.");
+    }
+    if (input.items.some((item) => !item.name?.trim())) {
+      throw new BadRequestException("Nama setiap item wajib diisi.");
+    }
+    if (input.items.some((item) => !Number.isFinite(Number(item.quantity)) || Number(item.quantity) <= 0)) {
+      throw new BadRequestException("Qty setiap item wajib lebih dari 0.");
+    }
+
+    const filledApprovals = (input.approvals || []).filter(
+      (approval) => approval.approverName?.trim() || approval.approverEmail?.trim() || approval.approverPosition?.trim()
+    );
+    if (filledApprovals.some((approval) => !approval.approverName?.trim() || !approval.approverEmail?.trim())) {
+      throw new BadRequestException("Nama dan email wajib diisi untuk setiap approval.");
+    }
+    if (filledApprovals.some((approval) => !this.isBusinessEmail(approval.approverEmail || ""))) {
+      throw new BadRequestException("Email approval wajib menggunakan email perusahaan, bukan email gratis.");
+    }
+  }
+
+  private isBusinessEmail(email: string) {
+    const domain = email.trim().toLowerCase().split("@")[1] || "";
+    const freeEmailDomains = new Set([
+      "gmail.com",
+      "googlemail.com",
+      "yahoo.com",
+      "yahoo.co.id",
+      "ymail.com",
+      "rocketmail.com",
+      "hotmail.com",
+      "hotmail.co.id",
+      "outlook.com",
+      "outlook.co.id",
+      "live.com",
+      "live.co.id",
+      "msn.com",
+      "aol.com",
+      "icloud.com",
+      "me.com",
+      "mail.com",
+      "protonmail.com",
+      "proton.me",
+      "gmx.com",
+      "yandex.com",
+      "mail.ru",
+      "tutanota.com"
+    ]);
+    const usesFreeEmail = [...freeEmailDomains].some(
+      (freeDomain) => domain === freeDomain || domain.endsWith(`.${freeDomain}`)
+    );
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) && !usesFreeEmail;
   }
 
   private async nextNumber(companyId: string, fixedCode: "21" | "22") {

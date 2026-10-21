@@ -187,6 +187,9 @@ export class PurchaseRequest {
   @Column()
   title!: string;
 
+  @Column({ name: "short_description" })
+  shortDescription!: string;
+
   @Column({ type: "text", nullable: true })
   description?: string;
 

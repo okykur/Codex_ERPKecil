@@ -70,6 +70,7 @@ export type PurchaseRequest = {
   id: string;
   documentNumber: string;
   title: string;
+  shortDescription: string;
   description?: string;
   department?: string;
   priority?: string;

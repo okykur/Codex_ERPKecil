@@ -45,8 +45,28 @@ import {
 import { DashboardPage } from "./pages/DashboardPage";
 import { SimpleListPage } from "./pages/SimpleListPage";
 
-const blankItem: PurchaseItem = { code: "", name: "", quantity: "1", unitPrice: "0", category: "Asset", warehouse: "User Request" };
+type PurchaseRequestForm = {
+  title: string;
+  department: string;
+  priority: string;
+  shortDescription: string;
+  description: string;
+};
+
+const blankItem: PurchaseItem = { code: "", name: "", quantity: "1", unitPrice: "", category: "Asset", warehouse: "User Request" };
 const blankApproval: ApprovalDraft = { approverName: "", approverPosition: "", approverEmail: "" };
+const freeEmailDomains = new Set([
+  "gmail.com", "googlemail.com", "yahoo.com", "yahoo.co.id", "ymail.com", "rocketmail.com", "hotmail.com",
+  "hotmail.co.id", "outlook.com", "outlook.co.id", "live.com", "live.co.id", "msn.com", "aol.com", "icloud.com",
+  "me.com", "mail.com", "protonmail.com", "proton.me", "gmx.com", "yandex.com", "mail.ru", "tutanota.com"
+]);
+
+function isBusinessEmail(email: string) {
+  const normalized = email.trim().toLowerCase();
+  const domain = normalized.split("@")[1] || "";
+  const usesFreeEmail = [...freeEmailDomains].some((freeDomain) => domain === freeDomain || domain.endsWith(`.${freeDomain}`));
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized) && !usesFreeEmail;
+}
 
 export function App() {
   const [session, setSession] = useState<Session | null>(() => storedSession());
@@ -275,21 +295,30 @@ function PurchaseRequestPage({
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<PurchaseRequest | null>(null);
   const [cancelTarget, setCancelTarget] = useState<PurchaseRequest | null>(null);
-  const [form, setForm] = useState({ title: "", department: "", priority: "Normal", description: "" });
+  const [form, setForm] = useState<PurchaseRequestForm>({
+    title: "",
+    department: "",
+    priority: "Normal",
+    shortDescription: "",
+    description: ""
+  });
   const [items, setItems] = useState<PurchaseItem[]>([{ ...blankItem }]);
   const [approvalRows, setApprovalRows] = useState<ApprovalDraft[]>([{ ...blankApproval }]);
+  const [formError, setFormError] = useState("");
+  const [showDiscardConfirmation, setShowDiscardConfirmation] = useState(false);
   const [search, setSearch] = useState("");
   const filtered = purchaseRequests.filter((pr) => pr.documentNumber.toLowerCase().includes(search.toLowerCase()));
 
   function openForm(pr?: PurchaseRequest) {
     setEditing(pr || null);
-    setForm({
+    const nextForm = {
       title: pr?.title || "",
       department: pr?.department || "",
       priority: pr?.priority || "Normal",
+      shortDescription: pr?.shortDescription || "",
       description: pr?.description || ""
-    });
-    setItems(pr?.items?.length ? pr.items : [{ ...blankItem }]);
+    };
+    const nextItems = pr?.items?.length ? pr.items : [{ ...blankItem }];
     const existingApprovals = pr
       ? approvals
           .filter((approval) => approval.documentType === "PR" && approval.documentId === pr.id)
@@ -299,14 +328,54 @@ function PurchaseRequestPage({
             approverEmail: approval.approverEmail
           }))
       : [];
-    setApprovalRows(existingApprovals.length ? existingApprovals : [{ ...blankApproval }]);
+    const nextApprovals = existingApprovals.length ? existingApprovals : [{ ...blankApproval }];
+    setForm(nextForm);
+    setItems(nextItems);
+    setApprovalRows(nextApprovals);
+    setFormError("");
     setShowForm(true);
   }
 
   async function submit() {
+    if (!form.title.trim() || !form.department.trim() || !form.shortDescription.trim()) {
+      setFormError("Judul PR, Departemen, dan Short Description wajib diisi.");
+      return;
+    }
+    if (!items.length || items.some((item) => !item.name.trim() || Number(item.quantity) <= 0)) {
+      setFormError("Minimal satu item wajib diisi dengan Nama dan Qty lebih dari 0.");
+      return;
+    }
+    const filledApprovals = approvalRows.filter(
+      (approval) => approval.approverName.trim() || approval.approverEmail.trim() || approval.approverPosition.trim()
+    );
+    if (filledApprovals.some((approval) => !approval.approverName.trim() || !approval.approverEmail.trim())) {
+      setFormError("Nama dan email wajib diisi untuk setiap approval.");
+      return;
+    }
+    if (filledApprovals.some((approval) => !isBusinessEmail(approval.approverEmail))) {
+      setFormError("Email approval wajib menggunakan email perusahaan, bukan Gmail, Yahoo, Hotmail, Live, atau email gratis lainnya.");
+      return;
+    }
     await savePurchaseRequest({ ...form, items, approvals: approvalRows }, editing?.id);
     setShowForm(false);
+    setShowDiscardConfirmation(false);
     await onSaved();
+  }
+
+  function requestCloseForm() {
+    const hasContent = Boolean(
+      form.title.trim() ||
+      form.department.trim() ||
+      form.shortDescription.trim() ||
+      form.description.trim() ||
+      items.some((item) => item.name.trim() || item.unitPrice !== "" || item.quantity !== "1") ||
+      approvalRows.some((approval) => approval.approverName.trim() || approval.approverEmail.trim())
+    );
+    if (hasContent) {
+      setShowDiscardConfirmation(true);
+      return;
+    }
+    setShowForm(false);
   }
 
   async function confirmCancel() {
@@ -362,10 +431,11 @@ function PurchaseRequestPage({
       </section>
       {showForm ? (
         <MasterModal
-          onClose={() => setShowForm(false)}
+          onClose={requestCloseForm}
           onSave={submit}
           title={editing ? `Edit PR ${editing.documentNumber}` : "Buat Purchase Request"}
         >
+        {formError ? <div className="alert">{formError}</div> : null}
         <DocumentForm
           approvalRows={approvalRows}
           form={form}
@@ -376,6 +446,18 @@ function PurchaseRequestPage({
           title={editing ? `Edit PR ${editing.documentNumber}` : "Buat Purchase Request"}
         />
         </MasterModal>
+      ) : null}
+      {showDiscardConfirmation ? (
+        <ConfirmModal
+          confirmLabel="Ya, Tutup Form"
+          message="Data yang sudah diisi atau diubah belum disimpan dan akan hilang. Tetap tutup form Purchase Request?"
+          onClose={() => setShowDiscardConfirmation(false)}
+          onConfirm={async () => {
+            setShowDiscardConfirmation(false);
+            setShowForm(false);
+          }}
+          title="Konfirmasi Tutup Form"
+        />
       ) : null}
       {cancelTarget ? (
         <ConfirmModal
@@ -1209,8 +1291,8 @@ function DocumentForm({
   setApprovalRows
 }: {
   title: string;
-  form: { title: string; department: string; priority: string; description: string };
-  setForm: (value: { title: string; department: string; priority: string; description: string }) => void;
+  form: PurchaseRequestForm;
+  setForm: (value: PurchaseRequestForm) => void;
   items: PurchaseItem[];
   setItems: (value: PurchaseItem[]) => void;
   approvalRows: ApprovalDraft[];
@@ -1221,12 +1303,21 @@ function DocumentForm({
       <p className="muted">{title}: isi informasi PR, tambah beberapa item, lalu tambahkan PIC approval.</p>
       <div className="form-grid two">
         <label>
-          Judul PR
-          <input onChange={(event) => setForm({ ...form, title: event.target.value })} value={form.title} />
+          Judul PR *
+          <input required onChange={(event) => setForm({ ...form, title: event.target.value })} value={form.title} />
         </label>
         <label>
-          Departemen
-          <input onChange={(event) => setForm({ ...form, department: event.target.value })} value={form.department} />
+          Departemen *
+          <input required onChange={(event) => setForm({ ...form, department: event.target.value })} value={form.department} />
+        </label>
+        <label>
+          Short Description *
+          <input
+            required
+            maxLength={255}
+            onChange={(event) => setForm({ ...form, shortDescription: event.target.value })}
+            value={form.shortDescription}
+          />
         </label>
         <label>
           Prioritas
@@ -1235,18 +1326,24 @@ function DocumentForm({
             <option>Tinggi</option>
           </select>
         </label>
-        <label>
-          Deskripsi
-          <input onChange={(event) => setForm({ ...form, description: event.target.value })} value={form.description} />
+        <label className="full-field">
+          Deskripsi Lengkap (Optional)
+          <textarea
+            onChange={(event) => setForm({ ...form, description: event.target.value })}
+            rows={4}
+            value={form.description}
+          />
         </label>
       </div>
       <EditableItems items={items} setItems={setItems} />
-      <ApprovalEditor approvals={approvalRows} setApprovals={setApprovalRows} />
+      <ApprovalEditor approvals={approvalRows} hidePosition setApprovals={setApprovalRows} />
     </div>
   );
 }
 
 function EditableItems({ items, setItems }: { items: PurchaseItem[]; setItems: (items: PurchaseItem[]) => void }) {
+  const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
+
   return (
     <div className="sub-panel">
       <div className="panel-header compact-header">
@@ -1255,35 +1352,63 @@ function EditableItems({ items, setItems }: { items: PurchaseItem[]; setItems: (
           + Tambah Item
         </button>
       </div>
-      <DataTable columns="0.8fr 1.5fr 0.7fr 1fr 1fr 1fr 80px">
-        <TableHead cells={["Kode", "Nama", "Qty", "Harga", "Kategori", "Gudang", "Aksi"]} />
+      <DataTable columns="1.8fr 0.8fr 1fr 80px">
+        <TableHead cells={["Nama Item *", "Qty *", "Harga (Optional)", "Aksi"]} />
         {items.map((item, index) => (
           <div className="table-row" key={index}>
-            {(["code", "name", "quantity", "unitPrice", "category", "warehouse"] as const).map((field) => (
-              <input
-                key={field}
-                onChange={(event) => setItems(items.map((row, rowIndex) => (rowIndex === index ? { ...row, [field]: event.target.value } : row)))}
-                type={field === "quantity" || field === "unitPrice" ? "number" : "text"}
-                value={item[field] || ""}
-              />
-            ))}
-            <button className="icon-button danger" onClick={() => setItems(items.filter((_, rowIndex) => rowIndex !== index))} type="button">
+            <input
+              required
+              onChange={(event) => setItems(items.map((row, rowIndex) => (rowIndex === index ? { ...row, name: event.target.value } : row)))}
+              value={item.name}
+            />
+            <input
+              min="0.01"
+              required
+              step="any"
+              onChange={(event) => setItems(items.map((row, rowIndex) => (rowIndex === index ? { ...row, quantity: event.target.value } : row)))}
+              type="number"
+              value={item.quantity}
+            />
+            <input
+              min="0"
+              step="any"
+              onChange={(event) => setItems(items.map((row, rowIndex) => (rowIndex === index ? { ...row, unitPrice: event.target.value } : row)))}
+              type="number"
+              value={item.unitPrice}
+            />
+            <button className="icon-button danger" onClick={() => setDeleteIndex(index)} title="Hapus item" type="button">
               ×
             </button>
           </div>
         ))}
       </DataTable>
+      {deleteIndex !== null ? (
+        <ConfirmModal
+          confirmLabel="Ya, Hapus Item"
+          message={`Item ${items[deleteIndex]?.name || `baris ${deleteIndex + 1}`} akan dihapus dari Purchase Request.`}
+          onClose={() => setDeleteIndex(null)}
+          onConfirm={async () => {
+            setItems(items.filter((_, rowIndex) => rowIndex !== deleteIndex));
+            setDeleteIndex(null);
+          }}
+          title="Konfirmasi Hapus Item"
+        />
+      ) : null}
     </div>
   );
 }
 
 function ApprovalEditor({
   approvals,
-  setApprovals
+  setApprovals,
+  hidePosition = false
 }: {
   approvals: ApprovalDraft[];
   setApprovals: (approvals: ApprovalDraft[]) => void;
+  hidePosition?: boolean;
 }) {
+  const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
+
   return (
     <div className="sub-panel">
       <div className="panel-header compact-header">
@@ -1292,25 +1417,50 @@ function ApprovalEditor({
           + Tambah Approval
         </button>
       </div>
-      <DataTable columns="1.2fr 1fr 1.3fr 80px">
-        <TableHead cells={["Nama Approver", "Jabatan", "Email", "Aksi"]} />
+      {hidePosition ? <p className="muted">Gunakan email perusahaan. Email gratis tidak diperbolehkan.</p> : null}
+      <DataTable columns={hidePosition ? "1.3fr 1.5fr 80px" : "1.2fr 1fr 1.3fr 80px"}>
+        <TableHead cells={hidePosition ? ["Nama Approver", "Email Perusahaan", "Aksi"] : ["Nama Approver", "Jabatan", "Email", "Aksi"]} />
         {approvals.map((approval, index) => (
           <div className="table-row" key={index}>
-            {(["approverName", "approverPosition", "approverEmail"] as const).map((field) => (
+            <input
+              onChange={(event) =>
+                setApprovals(approvals.map((row, rowIndex) => (rowIndex === index ? { ...row, approverName: event.target.value } : row)))
+              }
+              value={approval.approverName}
+            />
+            {!hidePosition ? (
               <input
-                key={field}
                 onChange={(event) =>
-                  setApprovals(approvals.map((row, rowIndex) => (rowIndex === index ? { ...row, [field]: event.target.value } : row)))
+                  setApprovals(approvals.map((row, rowIndex) => (rowIndex === index ? { ...row, approverPosition: event.target.value } : row)))
                 }
-                value={approval[field]}
+                value={approval.approverPosition}
               />
-            ))}
-            <button className="icon-button danger" onClick={() => setApprovals(approvals.filter((_, rowIndex) => rowIndex !== index))} type="button">
+            ) : null}
+            <input
+              onChange={(event) =>
+                setApprovals(approvals.map((row, rowIndex) => (rowIndex === index ? { ...row, approverEmail: event.target.value } : row)))
+              }
+              type="email"
+              value={approval.approverEmail}
+            />
+            <button className="icon-button danger" onClick={() => setDeleteIndex(index)} title="Hapus approval" type="button">
               ×
             </button>
           </div>
         ))}
       </DataTable>
+      {deleteIndex !== null ? (
+        <ConfirmModal
+          confirmLabel="Ya, Hapus Approval"
+          message={`Approval ${approvals[deleteIndex]?.approverName || `baris ${deleteIndex + 1}`} akan dihapus.`}
+          onClose={() => setDeleteIndex(null)}
+          onConfirm={async () => {
+            setApprovals(approvals.filter((_, rowIndex) => rowIndex !== deleteIndex));
+            setDeleteIndex(null);
+          }}
+          title="Konfirmasi Hapus Approval"
+        />
+      ) : null}
     </div>
   );
 }
