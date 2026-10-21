@@ -64,7 +64,6 @@ export function DashboardPage({
             <h2>Relasi PR dan PO</h2>
             <p>Data transaksi mengikuti akses role dan PT aktif.</p>
           </div>
-          <span className="soft-pill">{activeCompany.name}</span>
         </div>
         <div className="table">
           <div className="table-head" style={relationGridStyle}>
