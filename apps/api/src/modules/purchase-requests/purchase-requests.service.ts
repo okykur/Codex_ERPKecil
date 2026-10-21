@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { ILike, Like, Repository } from "typeorm";
+import { ILike, In, Like, Repository } from "typeorm";
 import {
   ApprovalStep,
   Company,
@@ -51,9 +51,9 @@ export class PurchaseRequestsService {
     @InjectRepository(PurchaseOrder) private readonly purchaseOrders: Repository<PurchaseOrder>
   ) {}
 
-  findAll(query: PurchaseRequestQuery, user: AuthenticatedUser) {
+  async findAll(query: PurchaseRequestQuery, user: AuthenticatedUser) {
     const isAdministrator = user.roles.includes("administrator");
-    return this.purchaseRequests.find({
+    const purchaseRequests = await this.purchaseRequests.find({
       where: {
         company: { id: user.companyId },
         ...(!isAdministrator ? { requester: { id: user.sub } } : {}),
@@ -63,6 +63,21 @@ export class PurchaseRequestsService {
       order: { createdAt: "DESC" },
       take: 50
     });
+    if (!purchaseRequests.length) {
+      return [];
+    }
+    const purchaseOrders = await this.purchaseOrders.find({
+      where: {
+        company: { id: user.companyId },
+        purchaseRequest: { id: In(purchaseRequests.map((pr) => pr.id)) }
+      },
+      relations: { purchaseRequest: true }
+    });
+    const purchaseRequestIdsWithPo = new Set(purchaseOrders.map((po) => po.purchaseRequest.id));
+    return purchaseRequests.map((pr) => ({
+      ...pr,
+      hasPurchaseOrder: purchaseRequestIdsWithPo.has(pr.id)
+    }));
   }
 
   async create(body: unknown, user: AuthenticatedUser) {
@@ -120,8 +135,14 @@ export class PurchaseRequestsService {
     if (!pr) {
       throw new NotFoundException("Purchase Request tidak ditemukan.");
     }
-    if (pr.status === "approved" || pr.status === "cancelled") {
-      throw new BadRequestException("PR approved/cancelled tidak bisa diubah.");
+    if (pr.status === "cancelled") {
+      throw new BadRequestException("PR cancelled tidak bisa diubah.");
+    }
+    const existingPurchaseOrder = await this.purchaseOrders.count({
+      where: { purchaseRequest: { id }, company: { id: user.companyId } }
+    });
+    if (existingPurchaseOrder) {
+      throw new BadRequestException("PR tidak bisa diubah karena Purchase Order sudah dibuat.");
     }
     if (!input.items?.length) {
       throw new BadRequestException("Minimal satu item PR wajib diisi.");

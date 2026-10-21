@@ -332,7 +332,13 @@ function PurchaseRequestPage({
               <StatusBadge status={pr.status} />
               <span>{pr.title}</span>
               <div className="action-row">
-                <button className="icon-button" onClick={() => openForm(pr)} title="View/Edit" type="button">
+                <button
+                  className="icon-button"
+                  disabled={pr.status === "cancelled" || pr.hasPurchaseOrder}
+                  onClick={() => openForm(pr)}
+                  title={pr.hasPurchaseOrder ? "Tidak dapat diedit karena PO sudah dibuat" : "Edit PR"}
+                  type="button"
+                >
                   ✎
                 </button>
                 {pr.status !== "approved" && pr.status !== "cancelled" ? (

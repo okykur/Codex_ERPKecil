@@ -78,6 +78,7 @@ export type PurchaseRequest = {
   company: Company;
   requester?: User;
   items: PurchaseItem[];
+  hasPurchaseOrder?: boolean;
 };
 
 export type PurchaseOrder = {
