@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query, Req, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Param, Patch, Post, Query, Req, UseGuards } from "@nestjs/common";
 import { AuthenticatedUser, JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { PurchaseOrdersService } from "./purchase-orders.service";
 
@@ -21,6 +21,12 @@ export class PurchaseOrdersController {
   @Post()
   create(@Body() body: unknown, @Req() request: { user: AuthenticatedUser }) {
     return this.purchaseOrdersService.create(body, request.user);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch(":id")
+  update(@Param("id") id: string, @Body() body: unknown, @Req() request: { user: AuthenticatedUser }) {
+    return this.purchaseOrdersService.update(id, body, request.user);
   }
 
   @UseGuards(JwtAuthGuard)

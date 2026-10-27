@@ -30,7 +30,7 @@ export class ApprovalsService {
         return {
           ...approval,
           documentNumber: document.documentNumber,
-          documentTitle: "title" in document ? document.title : document.purchaseRequest?.title,
+          documentTitle: "title" in document ? document.title : document.shortDescription,
           documentStatus: document.status,
           document,
           company: document.company
@@ -106,6 +106,7 @@ export class ApprovalsService {
       relations: {
         company: true,
         purchaseRequest: { items: true },
+        purchaseRequests: { items: true },
         vendor: true,
         items: true,
         quotations: true

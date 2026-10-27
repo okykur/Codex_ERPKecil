@@ -116,6 +116,8 @@ CREATE TABLE IF NOT EXISTS purchase_orders (
   purchase_request_id uuid NOT NULL REFERENCES purchase_requests(id),
   vendor_id uuid REFERENCES vendors(id),
   document_number varchar(60) NOT NULL,
+  short_description varchar(255) NOT NULL,
+  description text,
   status varchar(40) NOT NULL DEFAULT 'draft',
   tax_percent numeric(8,2) NOT NULL DEFAULT 0,
   net_amount numeric(18,2) NOT NULL DEFAULT 0,
@@ -123,6 +125,15 @@ CREATE TABLE IF NOT EXISTS purchase_orders (
   total_amount numeric(18,2) NOT NULL DEFAULT 0,
   UNIQUE (company_id, document_number)
 );
+
+CREATE TABLE IF NOT EXISTS purchase_order_purchase_requests (
+  purchase_order_id uuid NOT NULL REFERENCES purchase_orders(id) ON DELETE CASCADE,
+  purchase_request_id uuid NOT NULL REFERENCES purchase_requests(id),
+  PRIMARY KEY (purchase_order_id, purchase_request_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_po_pr_purchase_request
+  ON purchase_order_purchase_requests(purchase_request_id);
 
 CREATE TABLE IF NOT EXISTS purchase_order_items (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

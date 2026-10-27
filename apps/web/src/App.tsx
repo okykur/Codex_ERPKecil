@@ -15,7 +15,7 @@ import {
   approvalAction,
   cancelPurchaseOrder,
   cancelPurchaseRequest,
-  createPurchaseOrder,
+  savePurchaseOrder,
   createReceive,
   deleteCompany,
   deleteRole,
@@ -51,6 +51,10 @@ type PurchaseRequestForm = {
   priority: string;
   shortDescription: string;
   description: string;
+};
+
+type PurchaseOrderItemDraft = PurchaseItem & {
+  maxQuantity: number;
 };
 
 const blankItem: PurchaseItem = { code: "", name: "", quantity: "1", unitPrice: "", category: "Asset", warehouse: "User Request" };
@@ -180,6 +184,7 @@ export function App() {
       ) : null}
       {activePage === "purchase-order" ? (
         <PurchaseOrderPage
+          approvals={approvals}
           onCancel={(id) => cancelPurchaseOrder(id).then(() => refreshWithNotice("Purchase Order dicancel."))}
           onSaved={() => refreshWithNotice("Purchase Order tersimpan.")}
           purchaseOrders={purchaseOrders}
@@ -492,60 +497,122 @@ function PurchaseRequestPage({
 }
 
 function PurchaseOrderPage({
+  approvals,
   purchaseRequests,
   purchaseOrders,
   vendors,
   onSaved,
   onCancel
 }: {
+  approvals: ApprovalRow[];
   purchaseRequests: PurchaseRequest[];
   purchaseOrders: PurchaseOrder[];
   vendors: Vendor[];
   onSaved: () => Promise<void>;
   onCancel: (id: string) => Promise<void>;
 }) {
-  const prIdsWithPo = new Set(
-    purchaseOrders
-      .filter((po) => po.status !== "cancelled")
-      .map((po) => po.purchaseRequest?.id)
-      .filter(Boolean)
-  );
-  const approvedPrs = purchaseRequests.filter((pr) => pr.status === "approved" && !prIdsWithPo.has(pr.id));
-  const [selectedPrId, setSelectedPrId] = useState(approvedPrs[0]?.id || "");
-  const [vendorId, setVendorId] = useState(vendors[0]?.id || "");
+  const [editing, setEditing] = useState<PurchaseOrder | null>(null);
+  const [viewing, setViewing] = useState<PurchaseOrder | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<PurchaseOrder | null>(null);
+  const [selectedPrIds, setSelectedPrIds] = useState<string[]>([]);
+  const [vendorId, setVendorId] = useState("");
   const [taxPercent, setTaxPercent] = useState("11");
+  const [shortDescription, setShortDescription] = useState("");
+  const [description, setDescription] = useState("");
+  const [items, setItems] = useState<PurchaseOrderItemDraft[]>([]);
+  const [removedItemKeys, setRemovedItemKeys] = useState<Set<string>>(new Set());
   const [approvalRows, setApprovalRows] = useState<ApprovalDraft[]>([{ ...blankApproval }]);
   const [quotation, setQuotation] = useState({ vendorName: "", attachmentName: "" });
   const [showForm, setShowForm] = useState(false);
-  const selectedPr = purchaseRequests.find((pr) => pr.id === selectedPrId);
+  const [formError, setFormError] = useState("");
+  const [deleteItemIndex, setDeleteItemIndex] = useState<number | null>(null);
 
-  function openCreateForm() {
-    setSelectedPrId(approvedPrs[0]?.id || "");
-    setVendorId(vendors[0]?.id || "");
-    setTaxPercent("11");
-    setApprovalRows([{ ...blankApproval }]);
-    setQuotation({ vendorName: "", attachmentName: "" });
+  const selectableRequests = uniquePurchaseRequests([
+    ...purchaseRequests,
+    ...(editing ? purchaseOrderRequests(editing) : [])
+  ]).filter((pr) => pr.status === "approved");
+
+  function openForm(po?: PurchaseOrder) {
+    const selectedRequests = po ? purchaseOrderRequests(po) : [];
+    const existingApprovals = po
+      ? approvals
+          .filter((approval) => approval.documentType === "PO" && approval.documentId === po.id)
+          .map((approval) => ({
+            approverName: approval.approverName,
+            approverPosition: "",
+            approverEmail: approval.approverEmail
+          }))
+      : [];
+    const selectedQuotation = po?.quotations?.find((row) => row.selected) || po?.quotations?.[0];
+    setEditing(po || null);
+    setSelectedPrIds(selectedRequests.map((pr) => pr.id));
+    setVendorId(po?.vendor?.id || vendors[0]?.id || "");
+    setTaxPercent(po?.taxPercent || "11");
+    setShortDescription(po?.shortDescription || "");
+    setDescription(po?.description || "");
+    setItems(aggregatePurchaseOrderItems(selectedRequests, po?.items || [], new Set(), Boolean(po)));
+    setRemovedItemKeys(new Set());
+    setApprovalRows(existingApprovals.length ? existingApprovals : [{ ...blankApproval }]);
+    setQuotation({
+      vendorName: selectedQuotation?.vendorName || po?.vendor?.name || "",
+      attachmentName: selectedQuotation?.attachmentName || ""
+    });
+    setFormError("");
     setShowForm(true);
   }
 
+  function togglePurchaseRequest(prId: string) {
+    const nextIds = selectedPrIds.includes(prId)
+      ? selectedPrIds.filter((id) => id !== prId)
+      : [...selectedPrIds, prId];
+    const selectedRequests = selectableRequests.filter((pr) => nextIds.includes(pr.id));
+    setSelectedPrIds(nextIds);
+    setItems(aggregatePurchaseOrderItems(selectedRequests, items, removedItemKeys));
+  }
+
   async function submit() {
-    if (!selectedPrId) {
-      window.alert("Belum ada Purchase Request berstatus approved yang bisa dibuat PO.");
+    if (!selectedPrIds.length || !vendorId || taxPercent.trim() === "" || !shortDescription.trim()) {
+      setFormError("Purchase Request Number, Vendor, PPN %, dan Short Description wajib diisi.");
       return;
     }
-    if (!vendorId) {
-      window.alert("Vendor wajib dipilih sebelum membuat PO.");
+    const tax = Number(taxPercent);
+    if (!Number.isFinite(tax) || tax < 0 || tax > 100) {
+      setFormError("PPN wajib berupa angka 0 sampai 100.");
       return;
     }
-    await createPurchaseOrder({
-      purchaseRequestId: selectedPrId,
+    if (!items.length || items.some((item) => Number(item.quantity) <= 0 || Number(item.quantity) > item.maxQuantity || Number(item.unitPrice) < 0)) {
+      setFormError("Minimal satu item wajib dipilih. Qty harus lebih dari 0 dan tidak melebihi total qty PR.");
+      return;
+    }
+    const filledApprovals = approvalRows.filter((approval) => approval.approverName.trim() || approval.approverEmail.trim());
+    if (filledApprovals.some((approval) => !approval.approverName.trim() || !approval.approverEmail.trim())) {
+      setFormError("Nama dan email wajib diisi untuk setiap approval.");
+      return;
+    }
+    if (filledApprovals.some((approval) => !isBusinessEmail(approval.approverEmail))) {
+      setFormError("Email approval wajib menggunakan email perusahaan, bukan Gmail, Yahoo, Hotmail, Live, atau email gratis lainnya.");
+      return;
+    }
+    await savePurchaseOrder({
+      purchaseRequestIds: selectedPrIds,
       vendorId,
       taxPercent,
+      shortDescription,
+      description,
+      items: items.map(({ maxQuantity: _maxQuantity, ...item }) => item),
       approvals: approvalRows,
       quotations: [{ ...quotation, vendorName: quotation.vendorName || vendors.find((vendor) => vendor.id === vendorId)?.name, selected: true }]
-    });
+    }, editing?.id);
     setShowForm(false);
     await onSaved();
+  }
+
+  async function confirmCancel() {
+    if (!cancelTarget) {
+      return;
+    }
+    await onCancel(cancelTarget.id);
+    setCancelTarget(null);
   }
 
   return (
@@ -556,25 +623,30 @@ function PurchaseOrderPage({
             <h2>List Purchase Order</h2>
             <p>Data PO dari PR approved, termasuk PO rejected/cancelled.</p>
           </div>
-          <button className="primary-button" onClick={openCreateForm} type="button">
+          <button className="primary-button" onClick={() => openForm()} type="button">
             + Buat PO
           </button>
         </div>
-        <DataTable columns="1fr 1fr 1fr 1fr 1fr 130px">
+        <DataTable columns="1fr 1.3fr 1fr 1fr 1fr 170px">
           <TableHead cells={["Nomor PO", "Nomor PR", "Vendor", "Total", "Status", "Aksi"]} />
           {purchaseOrders.map((po) => (
             <div className="table-row" key={po.id}>
               <strong>{po.documentNumber}</strong>
-              <span>{po.purchaseRequest?.documentNumber}</span>
+              <span>{purchaseOrderRequestNumbers(po)}</span>
               <span>{po.vendor?.name || "-"}</span>
               <strong>{money(po.totalAmount)}</strong>
               <StatusBadge status={po.status} />
               <div className="action-row">
-                <button className="icon-button" title="View" type="button">
+                <button className="icon-button" onClick={() => setViewing(po)} title="Lihat detail PO" type="button">
                   ◉
                 </button>
-                {po.status === "issued" ? (
-                  <button className="icon-button danger" onClick={() => onCancel(po.id)} title="Cancel PO" type="button">
+                {["waiting_approval", "rejected"].includes(po.status) ? (
+                  <button className="icon-button" onClick={() => openForm(po)} title="Edit PO" type="button">
+                    ✎
+                  </button>
+                ) : null}
+                {["draft", "waiting_approval"].includes(po.status) ? (
+                  <button className="icon-button danger" onClick={() => setCancelTarget(po)} title="Cancel PO" type="button">
                     ×
                   </button>
                 ) : null}
@@ -584,27 +656,31 @@ function PurchaseOrderPage({
         </DataTable>
       </section>
       {showForm ? (
-        <MasterModal onClose={() => setShowForm(false)} onSave={submit} title="Buat Purchase Order">
+        <MasterModal onClose={() => setShowForm(false)} onSave={submit} title={editing ? `Edit PO ${editing.documentNumber}` : "Buat Purchase Order"}>
         <div className="master-form">
-          <p className="muted">Pilih nomor PR approved yang belum pernah dibuatkan PO.</p>
-          {!approvedPrs.length ? (
+          {formError ? <div className="alert">{formError}</div> : null}
+          <p className="muted">Pilih satu atau beberapa PR approved yang belum digunakan pada PO aktif.</p>
+          {!selectableRequests.length ? (
             <div className="alert">Belum ada Purchase Request approved yang belum dibuatkan Purchase Order.</div>
           ) : null}
+          <div className="sub-panel">
+            <div className="compact-header">
+              <h3>Purchase Request Number *</h3>
+            </div>
+            <div className="module-grid">
+              {selectableRequests.map((pr) => (
+                <label className="check-row" key={pr.id}>
+                  <input checked={selectedPrIds.includes(pr.id)} onChange={() => togglePurchaseRequest(pr.id)} type="checkbox" />
+                  <span>{pr.documentNumber}</span>
+                </label>
+              ))}
+            </div>
+          </div>
         <div className="form-grid three">
           <label>
-            Purchase Request Number
-            <select onChange={(event) => setSelectedPrId(event.target.value)} value={selectedPrId}>
-              <option value="">Pilih PR approved</option>
-              {approvedPrs.map((pr) => (
-                <option key={pr.id} value={pr.id}>
-                  {pr.documentNumber}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Vendor
+            Vendor *
             <select onChange={(event) => setVendorId(event.target.value)} value={vendorId}>
+              <option value="">Pilih Vendor</option>
               {vendors.map((vendor) => (
                 <option key={vendor.id} value={vendor.id}>
                   {vendor.name}
@@ -613,8 +689,16 @@ function PurchaseOrderPage({
             </select>
           </label>
           <label>
-            PPN %
-            <input onChange={(event) => setTaxPercent(event.target.value)} type="number" value={taxPercent} />
+            PPN % *
+            <input max="100" min="0" onChange={(event) => setTaxPercent(event.target.value)} type="number" value={taxPercent} />
+          </label>
+          <label>
+            Short Description *
+            <input maxLength={255} onChange={(event) => setShortDescription(event.target.value)} value={shortDescription} />
+          </label>
+          <label className="full-field">
+            Description
+            <textarea onChange={(event) => setDescription(event.target.value)} rows={3} value={description} />
           </label>
         </div>
         <div className="form-grid two">
@@ -631,11 +715,61 @@ function PurchaseOrderPage({
             />
           </label>
         </div>
-        <ReadonlyItems items={selectedPr?.items || []} taxPercent={Number(taxPercent || 0)} />
-        <ApprovalEditor approvals={approvalRows} setApprovals={setApprovalRows} />
+        <DataTable columns="1.6fr 0.7fr 0.8fr 1fr 1fr 70px">
+          <TableHead cells={["Nama Barang / Jasa", "Maks Qty PR", "Qty PO", "Harga", "Total", "Aksi"]} />
+          {items.map((item, index) => (
+            <div className="table-row" key={`${item.name}-${index}`}>
+              <strong>{item.name}</strong>
+              <span>{item.maxQuantity.toLocaleString("id-ID")}</span>
+              <input
+                max={item.maxQuantity}
+                min="0.01"
+                onChange={(event) => {
+                  const entered = Number(event.target.value);
+                  const quantity = entered > item.maxQuantity ? String(item.maxQuantity) : event.target.value;
+                  setItems(items.map((row, rowIndex) => rowIndex === index ? { ...row, quantity } : row));
+                }}
+                type="number"
+                value={item.quantity}
+              />
+              <input
+                min="0"
+                onChange={(event) => setItems(items.map((row, rowIndex) => rowIndex === index ? { ...row, unitPrice: event.target.value } : row))}
+                type="number"
+                value={item.unitPrice}
+              />
+              <strong>{money(Number(item.quantity) * Number(item.unitPrice))}</strong>
+              <button className="icon-button danger" onClick={() => setDeleteItemIndex(index)} title="Hapus item PO" type="button">×</button>
+            </div>
+          ))}
+        </DataTable>
+        <ApprovalEditor approvals={approvalRows} hidePosition setApprovals={setApprovalRows} />
         </div>
         </MasterModal>
       ) : null}
+      {deleteItemIndex !== null ? (
+        <ConfirmModal
+          confirmLabel="Ya, Hapus Item"
+          message={`Item ${items[deleteItemIndex]?.name || "terpilih"} akan dihapus dari Purchase Order.`}
+          onClose={() => setDeleteItemIndex(null)}
+          onConfirm={async () => {
+            setRemovedItemKeys(new Set([...removedItemKeys, itemNameKey(items[deleteItemIndex]?.name || "")]));
+            setItems(items.filter((_, index) => index !== deleteItemIndex));
+            setDeleteItemIndex(null);
+          }}
+          title="Konfirmasi Hapus Item PO"
+        />
+      ) : null}
+      {cancelTarget ? (
+        <ConfirmModal
+          confirmLabel="Ya, Cancel PO"
+          message={`Purchase Order ${cancelTarget.documentNumber} akan diubah menjadi cancelled. Tindakan ini tidak dapat dibatalkan.`}
+          onClose={() => setCancelTarget(null)}
+          onConfirm={confirmCancel}
+          title="Konfirmasi Cancel Purchase Order"
+        />
+      ) : null}
+      {viewing ? <PurchaseOrderDetailModal onClose={() => setViewing(null)} purchaseOrder={viewing} /> : null}
     </div>
   );
 }
@@ -740,7 +874,7 @@ function ReceivePage({
             <div className="table-row" key={po.id}>
               <strong>{po.documentNumber}</strong>
               <span>{po.vendor?.name || "-"}</span>
-              <span>{po.purchaseRequest?.documentNumber}</span>
+              <span>{purchaseOrderRequestNumbers(po)}</span>
               <strong>{money(po.totalAmount)}</strong>
               <StatusBadge status={po.status} />
               <button className="primary-button small" onClick={() => setSelectedPoId(po.id)} type="button">
@@ -1568,6 +1702,101 @@ function ResendApprovalModal({
   );
 }
 
+function purchaseOrderRequests(po: PurchaseOrder) {
+  return uniquePurchaseRequests(po.purchaseRequests?.length ? po.purchaseRequests : po.purchaseRequest ? [po.purchaseRequest] : []);
+}
+
+function purchaseOrderRequestNumbers(po: PurchaseOrder) {
+  return purchaseOrderRequests(po).map((pr) => pr.documentNumber).join(", ") || "-";
+}
+
+function uniquePurchaseRequests(requests: PurchaseRequest[]) {
+  return [...new Map(requests.map((pr) => [pr.id, pr])).values()];
+}
+
+function itemNameKey(name: string) {
+  return name.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function aggregatePurchaseOrderItems(
+  requests: PurchaseRequest[],
+  existingItems: Array<PurchaseItem | PurchaseOrderItemDraft> = [],
+  excludedKeys = new Set<string>(),
+  includeOnlyExisting = false
+): PurchaseOrderItemDraft[] {
+  const sourceItems = new Map<string, { name: string; quantity: number; unitPrice: string }>();
+  requests.flatMap((pr) => pr.items || []).forEach((item) => {
+    const key = itemNameKey(item.name);
+    const current = sourceItems.get(key);
+    sourceItems.set(key, {
+      name: current?.name || item.name,
+      quantity: (current?.quantity || 0) + Number(item.quantity),
+      unitPrice: current?.unitPrice || item.unitPrice
+    });
+  });
+  const existingByName = new Map(existingItems.map((item) => [itemNameKey(item.name), item]));
+  const itemKeys = includeOnlyExisting
+    ? [...existingByName.keys()].filter((key) => sourceItems.has(key))
+    : [...sourceItems.keys()].filter((key) => !excludedKeys.has(key));
+
+  return itemKeys.map((key, index) => {
+    const source = sourceItems.get(key)!;
+    const existing = existingByName.get(key);
+    const existingQuantity = Number(existing?.quantity || source.quantity);
+    const wasUsingFullAvailableQuantity = Boolean(
+      existing && "maxQuantity" in existing && existingQuantity === existing.maxQuantity
+    );
+    return {
+      id: existing?.id,
+      code: existing?.code || `POL-${String(index + 1).padStart(3, "0")}`,
+      name: source.name,
+      quantity: String(wasUsingFullAvailableQuantity ? source.quantity : Math.min(existingQuantity, source.quantity)),
+      unitPrice: String(existing?.unitPrice ?? source.unitPrice ?? "0"),
+      taxPercent: existing?.taxPercent,
+      maxQuantity: source.quantity
+    };
+  });
+}
+
+function PurchaseOrderDetailContent({ purchaseOrder: po }: { purchaseOrder: PurchaseOrder }) {
+  return (
+    <div className="master-form">
+      <div className="form-grid three">
+        <label>Nomor PO<input readOnly value={po.documentNumber} /></label>
+        <label>Nomor PR<input readOnly value={purchaseOrderRequestNumbers(po)} /></label>
+        <label>Status<input readOnly value={po.status.replaceAll("_", " ")} /></label>
+        <label>Vendor<input readOnly value={po.vendor?.name || "-"} /></label>
+        <label>Short Description<input readOnly value={po.shortDescription || "-"} /></label>
+        <label>Nilai Bersih<input readOnly value={money(po.netAmount)} /></label>
+        <label className="full-field">Description<textarea readOnly rows={3} value={po.description || "-"} /></label>
+        <label>PPN<input readOnly value={`${Number(po.taxPercent)}% / ${money(po.taxAmount)}`} /></label>
+        <label>Total<input readOnly value={money(po.totalAmount)} /></label>
+      </div>
+      <ReadonlyItems items={po.items || []} taxPercent={Number(po.taxPercent || 0)} />
+    </div>
+  );
+}
+
+function PurchaseOrderDetailModal({ purchaseOrder, onClose }: { purchaseOrder: PurchaseOrder; onClose: () => void }) {
+  return (
+    <div className="modal-backdrop">
+      <section className="modal-card">
+        <div className="panel-header">
+          <div>
+            <h2>Detail Purchase Order</h2>
+            <p>{purchaseOrder.documentNumber}</p>
+          </div>
+          <button className="icon-button danger" onClick={onClose} title="Tutup" type="button">×</button>
+        </div>
+        <div className="modal-body"><PurchaseOrderDetailContent purchaseOrder={purchaseOrder} /></div>
+        <div className="modal-footer">
+          <button className="secondary-button" onClick={onClose} type="button">Tutup</button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function DocumentDetailModal({ approval, onClose }: { approval: ApprovalRow; onClose: () => void }) {
   const document = approval.document;
 
@@ -1616,20 +1845,7 @@ function DocumentDetailModal({ approval, onClose }: { approval: ApprovalRow; onC
           })() : null}
           {document && approval.documentType === "PO" ? (() => {
             const po = document as PurchaseOrder;
-            return (
-              <div className="master-form">
-                <div className="form-grid three">
-                  <label>Nomor PO<input readOnly value={po.documentNumber} /></label>
-                  <label>Nomor PR<input readOnly value={po.purchaseRequest?.documentNumber || "-"} /></label>
-                  <label>Status<input readOnly value={po.status.replaceAll("_", " ")} /></label>
-                  <label>Vendor<input readOnly value={po.vendor?.name || "-"} /></label>
-                  <label>Nilai Bersih<input readOnly value={money(po.netAmount)} /></label>
-                  <label>PPN<input readOnly value={`${Number(po.taxPercent)}% / ${money(po.taxAmount)}`} /></label>
-                  <label>Total<input readOnly value={money(po.totalAmount)} /></label>
-                </div>
-                <ReadonlyItems items={po.items || []} taxPercent={Number(po.taxPercent || 0)} />
-              </div>
-            );
+            return <PurchaseOrderDetailContent purchaseOrder={po} />;
           })() : null}
         </div>
         <div className="modal-footer">
@@ -1743,7 +1959,7 @@ function ConfirmModal({
         <div className="panel-header">
           <div>
             <h2>{title}</h2>
-            <p>Pastikan Purchase Request yang dipilih sudah benar.</p>
+            <p>Periksa kembali data sebelum melanjutkan tindakan.</p>
           </div>
           <button className="icon-button danger" onClick={onClose} title="Tutup" type="button">
             ×

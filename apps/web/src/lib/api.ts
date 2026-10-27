@@ -85,6 +85,8 @@ export type PurchaseRequest = {
 export type PurchaseOrder = {
   id: string;
   documentNumber: string;
+  shortDescription: string;
+  description?: string;
   status: string;
   taxPercent: string;
   netAmount: string;
@@ -92,6 +94,7 @@ export type PurchaseOrder = {
   totalAmount: string;
   company: Company;
   purchaseRequest: PurchaseRequest;
+  purchaseRequests?: PurchaseRequest[];
   vendor?: Vendor;
   items: PurchaseItem[];
   quotations?: Array<{ id?: string; vendorName: string; attachmentName?: string; selected: boolean }>;
@@ -238,8 +241,10 @@ export async function fetchEligiblePurchaseRequests() {
   return data;
 }
 
-export async function createPurchaseOrder(payload: unknown) {
-  const { data } = await api.post<PurchaseOrder>("/purchase-orders", payload);
+export async function savePurchaseOrder(payload: unknown, id?: string) {
+  const { data } = id
+    ? await api.patch<PurchaseOrder>(`/purchase-orders/${id}`, payload)
+    : await api.post<PurchaseOrder>("/purchase-orders", payload);
   return data;
 }
 

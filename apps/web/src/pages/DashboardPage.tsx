@@ -82,7 +82,10 @@ export function DashboardPage({
           </div>
           {purchaseRequests.length ? (
             purchaseRequests.map((pr) => {
-              const relatedPo = purchaseOrders.find((po) => po.purchaseRequest?.id === pr.id);
+              const relatedPo = purchaseOrders.find((po) =>
+                (po.purchaseRequests?.length ? po.purchaseRequests : po.purchaseRequest ? [po.purchaseRequest] : [])
+                  .some((relatedPr) => relatedPr.id === pr.id)
+              );
               const relatedReceives = relatedPo
                 ? receives.filter((receive) => receive.purchaseOrder?.id === relatedPo.id)
                 : [];

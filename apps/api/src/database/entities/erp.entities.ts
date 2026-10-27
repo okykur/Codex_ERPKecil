@@ -280,12 +280,26 @@ export class PurchaseOrder {
   @JoinColumn({ name: "purchase_request_id" })
   purchaseRequest!: PurchaseRequest;
 
+  @ManyToMany(() => PurchaseRequest)
+  @JoinTable({
+    name: "purchase_order_purchase_requests",
+    joinColumn: { name: "purchase_order_id", referencedColumnName: "id" },
+    inverseJoinColumn: { name: "purchase_request_id", referencedColumnName: "id" }
+  })
+  purchaseRequests!: PurchaseRequest[];
+
   @ManyToOne(() => Vendor, { nullable: true })
   @JoinColumn({ name: "vendor_id" })
   vendor?: Vendor | null;
 
   @Column({ name: "document_number" })
   documentNumber!: string;
+
+  @Column({ name: "short_description" })
+  shortDescription!: string;
+
+  @Column({ type: "text", nullable: true })
+  description?: string;
 
   @Column({ default: "draft" })
   status!: string;

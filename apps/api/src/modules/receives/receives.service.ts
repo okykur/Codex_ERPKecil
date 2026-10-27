@@ -30,7 +30,7 @@ export class ReceivesService {
   async purchaseOrdersForReceive(user: AuthenticatedUser) {
     const orders = await this.purchaseOrders.find({
       where: { company: { id: user.companyId }, status: "issued" },
-      relations: { company: true, vendor: true, purchaseRequest: true, items: true },
+      relations: { company: true, vendor: true, purchaseRequest: true, purchaseRequests: true, items: true },
       order: { documentNumber: "DESC" }
     });
     const receives = await this.findAll(user);

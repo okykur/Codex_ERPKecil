@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { ILike, In, Like, Repository } from "typeorm";
+import { ILike, Like, Repository } from "typeorm";
 import {
   ApprovalStep,
   Company,
@@ -68,13 +68,13 @@ export class PurchaseRequestsService {
       return [];
     }
     const purchaseOrders = await this.purchaseOrders.find({
-      where: {
-        company: { id: user.companyId },
-        purchaseRequest: { id: In(purchaseRequests.map((pr) => pr.id)) }
-      },
-      relations: { purchaseRequest: true }
+      where: { company: { id: user.companyId } },
+      relations: { purchaseRequest: true, purchaseRequests: true }
     });
-    const purchaseRequestIdsWithPo = new Set(purchaseOrders.map((po) => po.purchaseRequest.id));
+    const visibleIds = new Set(purchaseRequests.map((pr) => pr.id));
+    const purchaseRequestIdsWithPo = new Set(
+      purchaseOrders.flatMap((po) => this.requestIdsForOrder(po)).filter((id) => visibleIds.has(id))
+    );
     return purchaseRequests.map((pr) => ({
       ...pr,
       hasPurchaseOrder: purchaseRequestIdsWithPo.has(pr.id)
@@ -136,9 +136,11 @@ export class PurchaseRequestsService {
     if (pr.status === "cancelled") {
       throw new BadRequestException("PR cancelled tidak bisa diubah.");
     }
-    const existingPurchaseOrder = await this.purchaseOrders.count({
-      where: { purchaseRequest: { id }, company: { id: user.companyId } }
+    const companyOrders = await this.purchaseOrders.find({
+      where: { company: { id: user.companyId } },
+      relations: { purchaseRequest: true, purchaseRequests: true }
     });
+    const existingPurchaseOrder = companyOrders.some((po) => this.requestIdsForOrder(po).includes(id));
     if (existingPurchaseOrder) {
       throw new BadRequestException("PR tidak bisa diubah karena Purchase Order sudah dibuat.");
     }
@@ -181,10 +183,12 @@ export class PurchaseRequestsService {
     if (!pr) {
       throw new NotFoundException("Purchase Request tidak ditemukan.");
     }
-    const approvedPo = await this.purchaseOrders.count({
-      where: { purchaseRequest: { id }, company: { id: user.companyId }, status: "approved" }
+    const companyOrders = await this.purchaseOrders.find({
+      where: { company: { id: user.companyId }, status: "issued" },
+      relations: { purchaseRequest: true, purchaseRequests: true }
     });
-    if (approvedPo > 0) {
+    const hasApprovedPo = companyOrders.some((po) => this.requestIdsForOrder(po).includes(id));
+    if (hasApprovedPo) {
       throw new BadRequestException("PR tidak bisa dicancel karena PO sudah approved.");
     }
     pr.status = "cancelled";
@@ -285,6 +289,10 @@ export class PurchaseRequestsService {
       (freeDomain) => domain === freeDomain || domain.endsWith(`.${freeDomain}`)
     );
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) && !usesFreeEmail;
+  }
+
+  private requestIdsForOrder(po: PurchaseOrder) {
+    return [...new Set([po.purchaseRequest?.id, ...(po.purchaseRequests || []).map((pr) => pr.id)].filter(Boolean) as string[])];
   }
 
   private async nextNumber(companyId: string, fixedCode: "21" | "22") {
