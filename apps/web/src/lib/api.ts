@@ -109,6 +109,7 @@ export type ApprovalRow = {
   approverPosition: string;
   approverEmail: string;
   status: string;
+  document?: PurchaseRequest | PurchaseOrder;
 };
 
 export type Receive = {

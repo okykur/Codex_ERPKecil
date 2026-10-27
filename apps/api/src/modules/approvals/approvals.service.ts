@@ -32,6 +32,7 @@ export class ApprovalsService {
           documentNumber: document.documentNumber,
           documentTitle: "title" in document ? document.title : document.purchaseRequest?.title,
           documentStatus: document.status,
+          document,
           company: document.company
         };
       })
@@ -51,6 +52,9 @@ export class ApprovalsService {
     if (!document || document.company.id !== user.companyId) {
       throw new NotFoundException("Dokumen approval tidak ditemukan.");
     }
+    if (["approved", "rejected"].includes(approval.status) || ["approved", "issued", "rejected", "cancelled"].includes(document.status)) {
+      throw new BadRequestException("Approval sudah memiliki keputusan final dan tidak dapat diubah.");
+    }
 
     approval.status = action;
     await this.approvals.save(approval);
@@ -66,6 +70,9 @@ export class ApprovalsService {
     const document = await this.documentFor(approval.documentType, approval.documentId);
     if (!document || document.company.id !== user.companyId) {
       throw new NotFoundException("Dokumen approval tidak ditemukan.");
+    }
+    if (approval.status !== "waiting_response" || document.status !== "waiting_approval") {
+      throw new BadRequestException("Email hanya dapat dikirim ulang untuk approval yang masih menunggu respons.");
     }
     return { ...approval, message: `Email approval disiapkan ulang untuk ${approval.approverEmail}.` };
   }
@@ -89,11 +96,20 @@ export class ApprovalsService {
 
   private async documentFor(documentType: "PR" | "PO", documentId: string) {
     if (documentType === "PR") {
-      return this.purchaseRequests.findOne({ where: { id: documentId }, relations: { company: true } });
+      return this.purchaseRequests.findOne({
+        where: { id: documentId },
+        relations: { company: true, requester: true, items: true }
+      });
     }
     return this.purchaseOrders.findOne({
       where: { id: documentId },
-      relations: { company: true, purchaseRequest: true }
+      relations: {
+        company: true,
+        purchaseRequest: { items: true },
+        vendor: true,
+        items: true,
+        quotations: true
+      }
     });
   }
 }

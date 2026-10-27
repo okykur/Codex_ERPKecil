@@ -548,6 +548,15 @@ textarea {
   width: min(560px, 96vw);
 }
 
+.resend-modal-card {
+  width: min(900px, 96vw);
+}
+
+.resend-modal-card .table-head,
+.resend-modal-card .table-row {
+  min-width: 720px;
+}
+
 .confirmation-copy {
   padding-top: 12px;
   padding-bottom: 22px;

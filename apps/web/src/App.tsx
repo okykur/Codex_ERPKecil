@@ -173,6 +173,7 @@ export function App() {
         <PurchaseRequestPage
           approvals={approvals}
           onCancel={(id) => cancelPurchaseRequest(id).then(() => refreshWithNotice("Purchase Request dicancel."))}
+          onResent={() => refreshWithNotice("Email approval Purchase Request dikirim ulang.")}
           onSaved={() => refreshWithNotice("Purchase Request tersimpan.")}
           purchaseRequests={purchaseRequests}
         />
@@ -285,16 +286,19 @@ function PurchaseRequestPage({
   approvals,
   purchaseRequests,
   onSaved,
-  onCancel
+  onCancel,
+  onResent
 }: {
   approvals: ApprovalRow[];
   purchaseRequests: PurchaseRequest[];
   onSaved: () => Promise<void>;
   onCancel: (id: string) => Promise<void>;
+  onResent: () => Promise<void>;
 }) {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<PurchaseRequest | null>(null);
   const [cancelTarget, setCancelTarget] = useState<PurchaseRequest | null>(null);
+  const [resendTarget, setResendTarget] = useState<PurchaseRequest | null>(null);
   const [form, setForm] = useState<PurchaseRequestForm>({
     title: "",
     department: "",
@@ -399,7 +403,7 @@ function PurchaseRequestPage({
           </button>
         </div>
         <input className="search" onChange={(event) => setSearch(event.target.value)} placeholder="Search nomor PR" value={search} />
-        <DataTable columns="1fr 1fr 1fr 1fr 1fr 1fr 150px">
+        <DataTable columns="1fr 1fr 1fr 1fr 1fr 1fr 165px">
           <TableHead cells={["Nomor PR", "Tanggal", "Departemen", "Nilai", "Status", "Judul", "Aksi"]} />
           {filtered.map((pr) => (
             <div className="table-row" key={pr.id}>
@@ -410,6 +414,13 @@ function PurchaseRequestPage({
               <StatusBadge status={pr.status} />
               <span>{pr.title}</span>
               <div className="action-row">
+                {pr.status === "waiting_approval" && approvals.some(
+                  (approval) => approval.documentType === "PR" && approval.documentId === pr.id && approval.status === "waiting_response"
+                ) ? (
+                  <button className="icon-button" onClick={() => setResendTarget(pr)} title="Kirim ulang email approval" type="button">
+                    ✉
+                  </button>
+                ) : null}
                 <button
                   className="icon-button"
                   disabled={pr.status === "cancelled" || pr.hasPurchaseOrder}
@@ -466,6 +477,14 @@ function PurchaseRequestPage({
           onClose={() => setCancelTarget(null)}
           onConfirm={confirmCancel}
           title="Konfirmasi Cancel Purchase Request"
+        />
+      ) : null}
+      {resendTarget ? (
+        <ResendApprovalModal
+          approvals={approvals.filter((approval) => approval.documentType === "PR" && approval.documentId === resendTarget.id)}
+          documentNumber={resendTarget.documentNumber}
+          onClose={() => setResendTarget(null)}
+          onResent={onResent}
         />
       ) : null}
     </div>
@@ -622,12 +641,10 @@ function PurchaseOrderPage({
 }
 
 function ApprovalPage({ approvals, onAction }: { approvals: ApprovalRow[]; onAction: () => Promise<void> }) {
-  async function run(id: string, action: "approved" | "rejected" | "resend") {
-    if (action === "resend") {
-      await resendApproval(id);
-    } else {
-      await approvalAction(id, action);
-    }
+  const [detailApproval, setDetailApproval] = useState<ApprovalRow | null>(null);
+
+  async function run(id: string, action: "approved" | "rejected") {
+    await approvalAction(id, action);
     await onAction();
   }
 
@@ -638,37 +655,46 @@ function ApprovalPage({ approvals, onAction }: { approvals: ApprovalRow[]; onAct
           <div className="panel-header">
             <div>
               <h2>Approval {context === "PR" ? "Purchase Request" : "Purchase Order"}</h2>
-              <p>Satu row untuk satu PIC approval, dengan aksi approve, reject, dan resend email.</p>
+              <p>Satu row untuk satu PIC approval, dengan detail dokumen dan aksi keputusan sesuai status.</p>
             </div>
           </div>
           <DataTable columns="0.7fr 1fr 1.2fr 1fr 1.4fr 1fr 150px">
             <TableHead cells={["Context", "Nomor", "Judul", "PIC", "Email", "Status PIC", "Aksi"]} />
             {approvals
               .filter((approval) => approval.documentType === context)
-              .map((approval) => (
-                <div className="table-row" key={approval.id}>
-                  <span>{approval.documentType}</span>
-                  <strong>{approval.documentNumber}</strong>
-                  <span>{approval.documentTitle}</span>
-                  <span>{approval.approverName}</span>
-                  <span>{approval.approverEmail}</span>
-                  <StatusBadge status={approval.status} />
-                  <div className="action-row">
-                    <button className="icon-button success-icon" onClick={() => run(approval.id, "approved")} title="Approve" type="button">
-                      ✓
-                    </button>
-                    <button className="icon-button danger" onClick={() => run(approval.id, "rejected")} title="Reject" type="button">
-                      ×
-                    </button>
-                    <button className="icon-button" onClick={() => run(approval.id, "resend")} title="Resend Email" type="button">
-                      ✉
-                    </button>
+              .map((approval) => {
+                const decisionIsFinal = ["approved", "rejected"].includes(approval.status);
+                const documentIsFinal = ["approved", "issued", "rejected", "cancelled"].includes(approval.documentStatus);
+                return (
+                  <div className="table-row" key={approval.id}>
+                    <span>{approval.documentType}</span>
+                    <strong>{approval.documentNumber}</strong>
+                    <span>{approval.documentTitle}</span>
+                    <span>{approval.approverName}</span>
+                    <span>{approval.approverEmail}</span>
+                    <StatusBadge status={approval.status} />
+                    <div className="action-row">
+                      <button className="icon-button" onClick={() => setDetailApproval(approval)} title={`Lihat detail ${approval.documentType}`} type="button">
+                        ◉
+                      </button>
+                      {!decisionIsFinal && !documentIsFinal ? (
+                        <>
+                          <button className="icon-button success-icon" onClick={() => run(approval.id, "approved")} title="Approve" type="button">
+                            ✓
+                          </button>
+                          <button className="icon-button danger" onClick={() => run(approval.id, "rejected")} title="Reject" type="button">
+                            ×
+                          </button>
+                        </>
+                      ) : null}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
           </DataTable>
         </section>
       ))}
+      {detailApproval ? <DocumentDetailModal approval={detailApproval} onClose={() => setDetailApproval(null)} /> : null}
     </div>
   );
 }
@@ -1461,6 +1487,157 @@ function ApprovalEditor({
           title="Konfirmasi Hapus Approval"
         />
       ) : null}
+    </div>
+  );
+}
+
+function ResendApprovalModal({
+  approvals,
+  documentNumber,
+  onClose,
+  onResent
+}: {
+  approvals: ApprovalRow[];
+  documentNumber: string;
+  onClose: () => void;
+  onResent: () => Promise<void>;
+}) {
+  const [sendingId, setSendingId] = useState("");
+  const [error, setError] = useState("");
+
+  async function resend(id: string) {
+    setSendingId(id);
+    setError("");
+    try {
+      await resendApproval(id);
+      await onResent();
+    } catch {
+      setError("Email approval belum berhasil dikirim ulang. Silakan coba kembali.");
+    } finally {
+      setSendingId("");
+    }
+  }
+
+  return (
+    <div className="modal-backdrop">
+      <section className="modal-card resend-modal-card">
+        <div className="panel-header">
+          <div>
+            <h2>Kirim Ulang Email Approval</h2>
+            <p>{documentNumber} - pilih PIC yang masih menunggu respons.</p>
+          </div>
+          <button className="icon-button danger" onClick={onClose} title="Tutup" type="button">
+            ×
+          </button>
+        </div>
+        <div className="modal-body">
+          {error ? <div className="alert">{error}</div> : null}
+          <DataTable columns="1fr 1.4fr 0.8fr 70px">
+            <TableHead cells={["PIC", "Email", "Status", "Aksi"]} />
+            {approvals.map((approval) => (
+              <div className="table-row" key={approval.id}>
+                <strong>{approval.approverName}</strong>
+                <span>{approval.approverEmail}</span>
+                <StatusBadge status={approval.status} />
+                <div className="action-row">
+                  {approval.status === "waiting_response" ? (
+                    <button
+                      className="icon-button"
+                      disabled={sendingId === approval.id}
+                      onClick={() => void resend(approval.id)}
+                      title="Kirim ulang email"
+                      type="button"
+                    >
+                      ✉
+                    </button>
+                  ) : (
+                    <span className="muted">-</span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </DataTable>
+        </div>
+        <div className="modal-footer">
+          <button className="secondary-button" onClick={onClose} type="button">
+            Tutup
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function DocumentDetailModal({ approval, onClose }: { approval: ApprovalRow; onClose: () => void }) {
+  const document = approval.document;
+
+  return (
+    <div className="modal-backdrop">
+      <section className="modal-card">
+        <div className="panel-header">
+          <div>
+            <h2>Detail {approval.documentType === "PR" ? "Purchase Request" : "Purchase Order"}</h2>
+            <p>{approval.documentNumber}</p>
+          </div>
+          <button className="icon-button danger" onClick={onClose} title="Tutup" type="button">
+            ×
+          </button>
+        </div>
+        <div className="modal-body">
+          {!document ? <div className="alert">Detail dokumen belum tersedia.</div> : null}
+          {document && approval.documentType === "PR" ? (() => {
+            const pr = document as PurchaseRequest;
+            return (
+              <div className="master-form">
+                <div className="form-grid three">
+                  <label>Nomor PR<input readOnly value={pr.documentNumber} /></label>
+                  <label>Status<input readOnly value={pr.status.replaceAll("_", " ")} /></label>
+                  <label>Peminta<input readOnly value={pr.requester?.name || "-"} /></label>
+                  <label>Judul PR<input readOnly value={pr.title} /></label>
+                  <label>Departemen<input readOnly value={pr.department || "-"} /></label>
+                  <label>Prioritas<input readOnly value={pr.priority || "-"} /></label>
+                  <label className="full-field">Short Description<input readOnly value={pr.shortDescription || "-"} /></label>
+                  <label className="full-field">Keterangan<textarea readOnly rows={3} value={pr.description || "-"} /></label>
+                  <label>Total<input readOnly value={money(pr.totalAmount)} /></label>
+                </div>
+                <DataTable columns="1.8fr 0.6fr 1fr 1fr">
+                  <TableHead cells={["Nama Barang / Jasa", "Qty", "Harga", "Total"]} />
+                  {(pr.items || []).map((item) => (
+                    <div className="table-row" key={item.id || item.name}>
+                      <span>{item.name}</span>
+                      <span>{Number(item.quantity).toLocaleString("id-ID")}</span>
+                      <span>{money(item.unitPrice)}</span>
+                      <strong>{money(Number(item.quantity) * Number(item.unitPrice))}</strong>
+                    </div>
+                  ))}
+                </DataTable>
+              </div>
+            );
+          })() : null}
+          {document && approval.documentType === "PO" ? (() => {
+            const po = document as PurchaseOrder;
+            return (
+              <div className="master-form">
+                <div className="form-grid three">
+                  <label>Nomor PO<input readOnly value={po.documentNumber} /></label>
+                  <label>Nomor PR<input readOnly value={po.purchaseRequest?.documentNumber || "-"} /></label>
+                  <label>Status<input readOnly value={po.status.replaceAll("_", " ")} /></label>
+                  <label>Vendor<input readOnly value={po.vendor?.name || "-"} /></label>
+                  <label>Nilai Bersih<input readOnly value={money(po.netAmount)} /></label>
+                  <label>PPN<input readOnly value={`${Number(po.taxPercent)}% / ${money(po.taxAmount)}`} /></label>
+                  <label>Total<input readOnly value={money(po.totalAmount)} /></label>
+                </div>
+                <ReadonlyItems items={po.items || []} taxPercent={Number(po.taxPercent || 0)} />
+              </div>
+            );
+          })() : null}
+        </div>
+        <div className="modal-footer">
+          <button className="secondary-button" onClick={onClose} type="button">
+            Tutup
+          </button>
+        </div>
+      </section>
     </div>
   );
 }
