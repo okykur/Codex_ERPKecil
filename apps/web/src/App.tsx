@@ -867,6 +867,13 @@ function ReceivePage({
     })));
   }
 
+  function closeReceive() {
+    setSelectedPoId("");
+    setReceiveLines([]);
+    setFormError("");
+    setHandoverDocument("");
+  }
+
   async function submit() {
     if (!selectedPo) {
       return;
@@ -885,8 +892,7 @@ function ReceivePage({
       return;
     }
     await createReceive({ purchaseOrderId: selectedPoId, basis, handoverDocument, lines });
-    setSelectedPoId("");
-    setReceiveLines([]);
+    closeReceive();
     await onSaved();
   }
 
@@ -916,62 +922,56 @@ function ReceivePage({
         </DataTable>
       </section>
       {selectedPo ? (
-        <section className="panel">
-          <div className="panel-header">
-            <div>
-              <h2>Receive {selectedPo.documentNumber}</h2>
-              <p>Isi Qty Receive sesuai penerimaan saat ini. Sisa dapat diterima pada transaksi berikutnya.</p>
+        <MasterModal onClose={closeReceive} onSave={submit} title={`Receive ${selectedPo.documentNumber}`}>
+          <div className="master-form">
+            <p className="muted">Isi Qty Receive sesuai penerimaan saat ini. Sisa dapat diterima pada transaksi berikutnya.</p>
+            {formError ? <div className="alert">{formError}</div> : null}
+            <div className="form-grid two">
+              <label>
+                Basis Receive
+                <select onChange={(event) => setBasis(event.target.value as "quantity" | "amount" | "deliverable")} value={basis}>
+                  <option value="quantity">Quantity</option>
+                  <option value="amount">Nominal</option>
+                  <option value="deliverable">Dokumen Deliverables</option>
+                </select>
+              </label>
+              <label>
+                Dokumen BAST/Serah Terima
+                <input onChange={(event) => setHandoverDocument(event.target.files?.[0]?.name || "")} type="file" />
+              </label>
             </div>
-            <button className="primary-button" onClick={submit} type="button">
-              Simpan Receive
-            </button>
+            <DataTable columns="0.8fr 1.6fr 0.7fr 0.8fr 0.8fr 1fr">
+              <TableHead cells={["Kode", "Nama Barang / Jasa", "Qty PO", "Sudah Receive", "Sisa", "Qty Receive"]} />
+              {selectedPo.items.map((item) => {
+                const remaining = Number(remainingQty(selectedPo, item));
+                const received = Number(item.quantity) - remaining;
+                const line = receiveLines.find((row) => row.code === item.code);
+                return (
+                  <div className="table-row" key={item.id || item.code}>
+                    <span>{item.code}</span>
+                    <strong>{item.name}</strong>
+                    <span>{Number(item.quantity).toLocaleString("id-ID")}</span>
+                    <span>{received.toLocaleString("id-ID")}</span>
+                    <span>{remaining.toLocaleString("id-ID")}</span>
+                    <input
+                      inputMode="decimal"
+                      max={remaining}
+                      min="0"
+                      onChange={(event) => {
+                        const entered = Number(event.target.value);
+                        const quantity = entered > remaining ? String(remaining) : event.target.value;
+                        setReceiveLines(receiveLines.map((row) => row.code === item.code ? { ...row, receivedQuantity: quantity } : row));
+                      }}
+                      step="0.01"
+                      type="number"
+                      value={line?.receivedQuantity || ""}
+                    />
+                  </div>
+                );
+              })}
+            </DataTable>
           </div>
-          {formError ? <div className="alert">{formError}</div> : null}
-          <div className="form-grid two">
-            <label>
-              Basis Receive
-              <select onChange={(event) => setBasis(event.target.value as "quantity" | "amount" | "deliverable")} value={basis}>
-                <option value="quantity">Quantity</option>
-                <option value="amount">Nominal</option>
-                <option value="deliverable">Dokumen Deliverables</option>
-              </select>
-            </label>
-            <label>
-              Dokumen BAST/Serah Terima
-              <input onChange={(event) => setHandoverDocument(event.target.files?.[0]?.name || "")} type="file" />
-            </label>
-          </div>
-          <DataTable columns="0.8fr 1.6fr 0.7fr 0.8fr 0.8fr 1fr">
-            <TableHead cells={["Kode", "Nama Barang / Jasa", "Qty PO", "Sudah Receive", "Sisa", "Qty Receive"]} />
-            {selectedPo.items.map((item) => {
-              const remaining = Number(remainingQty(selectedPo, item));
-              const received = Number(item.quantity) - remaining;
-              const line = receiveLines.find((row) => row.code === item.code);
-              return (
-                <div className="table-row" key={item.id || item.code}>
-                  <span>{item.code}</span>
-                  <strong>{item.name}</strong>
-                  <span>{Number(item.quantity).toLocaleString("id-ID")}</span>
-                  <span>{received.toLocaleString("id-ID")}</span>
-                  <span>{remaining.toLocaleString("id-ID")}</span>
-                  <input
-                    inputMode="decimal"
-                    max={remaining}
-                    min="0"
-                    onChange={(event) => {
-                      const entered = Number(event.target.value);
-                      const quantity = entered > remaining ? String(remaining) : event.target.value;
-                      setReceiveLines(receiveLines.map((row) => row.code === item.code ? { ...row, receivedQuantity: quantity } : row));
-                    }}
-                    step="0.01"
-                    type="number"
-                    value={line?.receivedQuantity || ""}
-                  />
-                </div>
-              );
-            })}
-          </DataTable>
-        </section>
+        </MasterModal>
       ) : null}
       <SimpleListPage
         columns={[
