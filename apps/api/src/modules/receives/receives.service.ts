@@ -13,7 +13,6 @@ type ReceiveLineInput = {
 
 type ReceiveInput = {
   purchaseOrderId?: string;
-  kind?: "goods" | "service" | "mixed";
   basis?: "quantity" | "amount" | "deliverable";
   handoverDocument?: string;
   lines?: ReceiveLineInput[];
@@ -70,42 +69,54 @@ export class ReceivesService {
     }
 
     await this.validateRemaining(po, input.lines);
+    const basis = input.basis || "quantity";
     const receive = await this.receives.save(
       this.receives.create({
         purchaseOrder: po,
         documentNumber: await this.nextNumber(user.companyId),
-        kind: input.kind || "goods",
-        basis: input.basis || "quantity",
+        kind: basis === "quantity" ? "goods" : "service",
+        basis,
         handoverDocument: input.handoverDocument
       })
     );
     await this.receiveLines.save(
-      input.lines.map((line) =>
-        this.receiveLines.create({
+      input.lines.map((line) => {
+        const poLine = po.items.find((item) => item.code === line.code)!;
+        const receivedQuantity = Number(line.receivedQuantity);
+        return this.receiveLines.create({
           receive,
           code: line.code || "",
-          name: line.name || "",
-          receivedQuantity: String(Number(line.receivedQuantity || 0)),
-          receivedAmount: String(Number(line.receivedAmount || 0))
-        })
-      )
+          name: poLine.name,
+          receivedQuantity: receivedQuantity.toFixed(2),
+          receivedAmount: (receivedQuantity * Number(poLine.unitPrice)).toFixed(2)
+        });
+      })
     );
     return this.receives.findOneOrFail({ where: { id: receive.id }, relations: { purchaseOrder: true, lines: true } });
   }
 
   private async validateRemaining(po: PurchaseOrder, lines: ReceiveLineInput[]) {
     const previousReceives = await this.receives.find({ where: { purchaseOrder: { id: po.id } }, relations: { lines: true } });
+    const requestedByCode = new Map<string, number>();
     for (const line of lines) {
-      const poLine = po.items.find((item) => item.code === line.code);
+      const code = line.code || "";
+      const quantity = Number(line.receivedQuantity);
+      if (!Number.isFinite(quantity) || quantity <= 0) {
+        throw new BadRequestException(`Qty receive ${code} wajib lebih dari 0.`);
+      }
+      requestedByCode.set(code, (requestedByCode.get(code) || 0) + quantity);
+    }
+    for (const [code, requestedQuantity] of requestedByCode) {
+      const poLine = po.items.find((item) => item.code === code);
       if (!poLine) {
-        throw new BadRequestException(`Item ${line.code || ""} tidak ada di PO.`);
+        throw new BadRequestException(`Item ${code} tidak ada di PO.`);
       }
       const receivedQty = previousReceives
         .flatMap((receive) => receive.lines || [])
-        .filter((receiveLine) => receiveLine.code === line.code)
+        .filter((receiveLine) => receiveLine.code === code)
         .reduce((sum, receiveLine) => sum + Number(receiveLine.receivedQuantity), 0);
-      if (receivedQty + Number(line.receivedQuantity || 0) > Number(poLine.quantity)) {
-        throw new BadRequestException(`Qty receive ${line.code} melebihi sisa PO.`);
+      if (receivedQty + requestedQuantity > Number(poLine.quantity)) {
+        throw new BadRequestException(`Qty receive ${code} melebihi sisa PO.`);
       }
     }
   }

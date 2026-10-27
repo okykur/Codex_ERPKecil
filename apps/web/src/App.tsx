@@ -843,19 +843,50 @@ function ReceivePage({
   onSaved: () => Promise<void>;
 }) {
   const [selectedPoId, setSelectedPoId] = useState("");
-  const [kind, setKind] = useState<"goods" | "service" | "mixed">("goods");
   const [basis, setBasis] = useState<"quantity" | "amount" | "deliverable">("quantity");
   const [handoverDocument, setHandoverDocument] = useState("");
+  const [receiveLines, setReceiveLines] = useState<Array<{
+    code: string;
+    name: string;
+    receivedQuantity: string;
+    receivedAmount: string;
+  }>>([]);
+  const [formError, setFormError] = useState("");
   const selectedPo = purchaseOrders.find((po) => po.id === selectedPoId);
-  const receiveLines = selectedPo?.items.map((item) => ({
-    code: item.code,
-    name: item.name,
-    receivedQuantity: remainingQty(selectedPo, item),
-    receivedAmount: String(Number(item.quantity) * Number(item.unitPrice))
-  }));
+
+  function openReceive(po: PurchaseOrder) {
+    setSelectedPoId(po.id);
+    setBasis("quantity");
+    setHandoverDocument("");
+    setFormError("");
+    setReceiveLines(po.items.map((item) => ({
+      code: item.code,
+      name: item.name,
+      receivedQuantity: remainingQty(po, item),
+      receivedAmount: String(Number(remainingQty(po, item)) * Number(item.unitPrice))
+    })));
+  }
 
   async function submit() {
-    await createReceive({ purchaseOrderId: selectedPoId, kind, basis, handoverDocument, lines: receiveLines });
+    if (!selectedPo) {
+      return;
+    }
+    const lines = receiveLines
+      .filter((line) => Number(line.receivedQuantity) > 0)
+      .map((line) => {
+        const poItem = selectedPo.items.find((item) => item.code === line.code);
+        return {
+          ...line,
+          receivedAmount: String(Number(line.receivedQuantity) * Number(poItem?.unitPrice || 0))
+        };
+      });
+    if (!lines.length) {
+      setFormError("Minimal satu item harus memiliki Qty Receive lebih dari 0.");
+      return;
+    }
+    await createReceive({ purchaseOrderId: selectedPoId, basis, handoverDocument, lines });
+    setSelectedPoId("");
+    setReceiveLines([]);
     await onSaved();
   }
 
@@ -877,7 +908,7 @@ function ReceivePage({
               <span>{purchaseOrderRequestNumbers(po)}</span>
               <strong>{money(po.totalAmount)}</strong>
               <StatusBadge status={po.status} />
-              <button className="primary-button small" onClick={() => setSelectedPoId(po.id)} type="button">
+              <button className="primary-button small" onClick={() => openReceive(po)} type="button">
                 Receive
               </button>
             </div>
@@ -889,21 +920,14 @@ function ReceivePage({
           <div className="panel-header">
             <div>
               <h2>Receive {selectedPo.documentNumber}</h2>
-              <p>Barang dan jasa dibedakan melalui tipe receive dan basis penerimaan.</p>
+              <p>Isi Qty Receive sesuai penerimaan saat ini. Sisa dapat diterima pada transaksi berikutnya.</p>
             </div>
             <button className="primary-button" onClick={submit} type="button">
               Simpan Receive
             </button>
           </div>
-          <div className="form-grid three">
-            <label>
-              Tipe Receive
-              <select onChange={(event) => setKind(event.target.value as "goods" | "service" | "mixed")} value={kind}>
-                <option value="goods">Barang</option>
-                <option value="service">Jasa</option>
-                <option value="mixed">Barang + Jasa</option>
-              </select>
-            </label>
+          {formError ? <div className="alert">{formError}</div> : null}
+          <div className="form-grid two">
             <label>
               Basis Receive
               <select onChange={(event) => setBasis(event.target.value as "quantity" | "amount" | "deliverable")} value={basis}>
@@ -917,14 +941,42 @@ function ReceivePage({
               <input onChange={(event) => setHandoverDocument(event.target.files?.[0]?.name || "")} type="file" />
             </label>
           </div>
-          <ReadonlyItems items={selectedPo.items} taxPercent={Number(selectedPo.taxPercent || 0)} />
+          <DataTable columns="0.8fr 1.6fr 0.7fr 0.8fr 0.8fr 1fr">
+            <TableHead cells={["Kode", "Nama Barang / Jasa", "Qty PO", "Sudah Receive", "Sisa", "Qty Receive"]} />
+            {selectedPo.items.map((item) => {
+              const remaining = Number(remainingQty(selectedPo, item));
+              const received = Number(item.quantity) - remaining;
+              const line = receiveLines.find((row) => row.code === item.code);
+              return (
+                <div className="table-row" key={item.id || item.code}>
+                  <span>{item.code}</span>
+                  <strong>{item.name}</strong>
+                  <span>{Number(item.quantity).toLocaleString("id-ID")}</span>
+                  <span>{received.toLocaleString("id-ID")}</span>
+                  <span>{remaining.toLocaleString("id-ID")}</span>
+                  <input
+                    inputMode="decimal"
+                    max={remaining}
+                    min="0"
+                    onChange={(event) => {
+                      const entered = Number(event.target.value);
+                      const quantity = entered > remaining ? String(remaining) : event.target.value;
+                      setReceiveLines(receiveLines.map((row) => row.code === item.code ? { ...row, receivedQuantity: quantity } : row));
+                    }}
+                    step="0.01"
+                    type="number"
+                    value={line?.receivedQuantity || ""}
+                  />
+                </div>
+              );
+            })}
+          </DataTable>
         </section>
       ) : null}
       <SimpleListPage
         columns={[
           { header: "Nomor Receive", render: (row) => row.documentNumber },
           { header: "Nomor PO", render: (row) => row.purchaseOrder.documentNumber },
-          { header: "Tipe", render: (row) => row.kind },
           { header: "Basis", render: (row) => row.basis },
           { header: "Dokumen", render: (row) => row.handoverDocument || "-" }
         ]}
